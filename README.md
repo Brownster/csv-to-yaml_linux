@@ -1,4 +1,4 @@
-# csv-to-yaml_linux
+# csv-to-yaml - Prometheus config
 
 take CSV file with the follomg headers:
 
