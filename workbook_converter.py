@@ -41,14 +41,6 @@ def exporter_linux(file_path, output_file, output_dir):
         yaml.dump(data, f)
 
 def exporter_blackbox(file_path, output_file, output_dir):
-        # Get the file path from command line arguments
-    file_path = sys.argv[1]
-
-    # Get the output file name from command line arguments
-    output_file = sys.argv[2]
-
-    # Get the output directory from command line arguments
-    output_dir = sys.argv[3]
 
     # Read CSV file into pandas
     df = pd.read_csv(file_path)
@@ -94,15 +86,6 @@ def exporter_blackbox(file_path, output_file, output_dir):
         yaml.dump(yaml_output, f)
 
 def exporter_ssl(file_path, output_file, output_dir):
-    # Get the file path from command line arguments
-    file_path = sys.argv[1]
-
-    # Get the output file name from command line arguments
-    output_file = sys.argv[2]
-
-    # Get the output directory from command line arguments
-    output_dir = sys.argv[3]
-
     # Read CSV file into pandas DataFrame
     df = pd.read_csv(file_path)
 
@@ -162,4 +145,17 @@ if __name__ == '__main__':
     if 'all' in script_names:
         run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_ssl'], file_path, output_file, output_dir)
     else:
-        run_scripts(script_names, file_path,
+        exporter_names = script_names
+
+# Initialize exporter_names to empty list if not specified
+if not exporter_names:
+    exporter_names = []
+
+    # Loop through the exporter names and call the corresponding function
+    for exporter_name in exporter_names:
+        if exporter_name == 'exporter_linux':
+            exporter_linux(file_path, output_file, output_dir)
+        elif exporter_name == 'exporter_blackbox':
+            exporter_blackbox(file_path, output_file, output_dir)
+        elif exporter_name == 'exporter_ssl':
+            exporter_ssl(file_path, output_file, output_dir)
