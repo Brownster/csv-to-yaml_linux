@@ -37,9 +37,9 @@ for index, row in df.iterrows():
     if ip_address not in yaml_output[exporter_name][hostname]:
         yaml_output[exporter_name][hostname][ip_address] = {}
 
+    yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
     yaml_output[exporter_name][hostname][ip_address]['location'] = location
     yaml_output[exporter_name][hostname][ip_address]['country'] = country
-    yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['ListenPort'])
     yaml_output[exporter_name][hostname][ip_address]['username'] = 'root'
     yaml_output[exporter_name][hostname][ip_address]['password'] = 'ENC'
 
