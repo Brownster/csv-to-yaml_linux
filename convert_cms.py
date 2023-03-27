@@ -20,20 +20,23 @@ df = df[df['Exporter_name_app'] == 'exporter_cms']
 # Create an empty dictionary to store the YAML output
 yaml_output = {}
 
+# Initialize exporter_cms key in the YAML dictionary
+yaml_output['exporter_cms'] = {}
+
 # Iterate over rows in filtered dataframe
 for index, row in df.iterrows():
     exporter_name = 'exporter_cms'
     hostname = row['Hostnames']
     ip_address = row['IP Address']
-    listen_port = row['Listen Port']
+    listen_port = int(row['App-Listen-Port'])
     location = row['Location']
     country = row['Country']
-    username = row['Username']
-    password = row['Password']
-    
+    username = 'root'
+    password = 'ENC'
+
     if hostname not in yaml_output.get(exporter_name, {}):
         yaml_output[exporter_name][hostname] = {}
-    
+
     yaml_output[exporter_name][hostname]['ip_address'] = ip_address
     yaml_output[exporter_name][hostname]['listen_port'] = listen_port
     yaml_output[exporter_name][hostname]['location'] = location
