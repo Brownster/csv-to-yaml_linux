@@ -199,6 +199,12 @@ def exporter_cms(file_path, output_file, output_dir):
             yaml.dump(yaml_output, f)
 
 ##################WINDOWS###################
+
+def exporter_windows(file_path, output_file, output_dir):
+    
+    # Read CSV file into pandas
+    df = pd.read_csv(file_path)
+    
     # Filter the data based on the condition
     df_filtered = df[df['Exporter_name_os'] == 'exporter_windows']
 
