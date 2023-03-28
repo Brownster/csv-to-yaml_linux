@@ -198,7 +198,47 @@ def exporter_cms(file_path, output_file, output_dir):
         with open(output_path, 'w') as f:
             yaml.dump(yaml_output, f)
 
+##################WINDOWS###################
+    # Filter the data based on the condition
+    df_filtered = df[df['Exporter_name_os'] == 'exporter_windows']
 
+
+    # Create an empty dictionary to store the YAML output
+    yaml_output = {}
+
+    # Initialize exporter_cms key in the YAML dictionary
+    yaml_output['exporter_windows'] = {}
+
+    # Loop through the filtered data and add to the dictionary
+    for _, row in df_filtered.iterrows():
+        exporter_name = 'exporter_windows'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        listen_port = 9182
+        if exporter_name not in yaml_output:
+            yaml_output[exporter_name] = {}
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+        yaml_output[exporter_name][fqdn] = {
+            'ip_address': ip_address,
+            'listen_port': listen_port,
+            'location': location,
+            'country': country,
+        }
+
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    output_path = output_dir + output_file
+    if os.path.exists(output_path):
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    else:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f)
+
+            
+##################MAIN LOOP###################
 
 def run_scripts(scripts, file_path, output_file, output_dir):
     for script in scripts:
@@ -224,7 +264,7 @@ if __name__ == '__main__':
 
     # If "all" is specified, run all scripts
     if 'all' in script_names:
-        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_ssl', 'exporter_cms'], file_path, output_file, output_dir)
+        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_windows', 'exporter_ssl', 'exporter_cms'], file_path, output_file, output_dir)
     else:
         exporter_names = script_names
 
@@ -242,3 +282,5 @@ if __name__ == '__main__':
             exporter_ssl(file_path, output_file, output_dir)
         elif exporter_name == 'exporter_cms':
             exporter_cms(file_path, output_file, output_dir)
+        elif exporter_name == 'exporter_windows':
+            exporter_windows(file_path, output_file, output_dir)
