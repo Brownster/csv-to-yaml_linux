@@ -1,6 +1,11 @@
 import sys
 import pandas as pd
 import yaml
+import os
+
+
+###############LINUX#########################
+
 
 def exporter_linux(file_path, output_file, output_dir):
     # Read CSV file into pandas DataFrame
@@ -9,24 +14,27 @@ def exporter_linux(file_path, output_file, output_dir):
     # Filter the data based on the condition
     df_filtered = df[df['Exporter_name_os'] == 'exporter_linux']
 
-    # Create an empty dictionary to hold the final YAML data
-    data = {}
+    # Create an empty dictionary to store the YAML output
+    yaml_output = {}
+
+    # Initialize exporter_blackbox key in the YAML dictionary
+    yaml_output['exporter_linux'] = {}
 
     # Loop through the filtered data and add to the dictionary
     for _, row in df_filtered.iterrows():
         exporter_name = 'exporter_linux'
         fqdn = row['FQDN']
         ip_address = row['IP Address']
+        listen_port = int(row['OS-Listen-Port'])
         location = row['Location']
         country = row['Country']
-        listen_port = int(row['OS-Listen-Port'])
         username = 'your_username_here'
         password = 'your_password_here'
-        if exporter_name not in data:
-            data[exporter_name] = {}
+        if exporter_name not in yaml_output:
+            yaml_output[exporter_name] = {}
         if fqdn not in data[exporter_name]:
-            data[exporter_name][fqdn] = {}
-        data[exporter_name][fqdn] = {
+            yaml_output[exporter_name][fqdn] = {}
+        yaml_output[exporter_name][fqdn] = {
             'ip_address': ip_address,
             'listen_port': listen_port,
             'location': location,
@@ -35,10 +43,17 @@ def exporter_linux(file_path, output_file, output_dir):
             'password': password
         }
 
-    # Write the YAML data to a file
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
     output_path = output_dir + output_file
-    with open(output_path, 'w') as f:
-        yaml.dump(data, f)
+    if os.path.exists(output_path):
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    else:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f)
+
+#################BlackBox##################
+
 
 def exporter_blackbox(file_path, output_file, output_dir):
 
@@ -80,10 +95,17 @@ def exporter_blackbox(file_path, output_file, output_dir):
                 'location': location,
                 'country': country
             }
-    # Write the YAML data to a file
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
     output_path = output_dir + output_file
-    with open(output_path, 'w') as f:
-        yaml.dump(yaml_output, f)
+    if os.path.exists(output_path):
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    else:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f)
+
+###################SSL####################
+
 
 def exporter_ssl(file_path, output_file, output_dir):
     # Read CSV file into pandas DataFrame
@@ -92,8 +114,11 @@ def exporter_ssl(file_path, output_file, output_dir):
     # Filter the data based on the condition
     df_filtered = df[df['Exporter_SSL'] == True]
 
-    # Create an empty dictionary to hold the final YAML data
-    data = {}
+    # Create an empty dictionary to store the YAML output
+    yaml_output = {}
+
+    # Initialize exporter_cms key in the YAML dictionary
+    yaml_output['exporter_ssl'] = {}
 
     # Loop through the filtered data and add to the dictionary
     for _, row in df_filtered.iterrows():
@@ -103,21 +128,77 @@ def exporter_ssl(file_path, output_file, output_dir):
         location = row['Location']
         country = row['Country']
         listen_port = 443
-        if exporter_name not in data:
-            data[exporter_name] = {}
-        if fqdn not in data[exporter_name]:
-            data[exporter_name][fqdn] = {}
-        data[exporter_name][fqdn] = {
+        if exporter_name not in yaml_output:
+            yaml_output[exporter_name] = {}
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+        yaml_output[exporter_name][fqdn] = {
             'ip_address': ip_address,
             'listen_port': listen_port,
             'location': location,
             'country': country,
         }
 
-    # Write the YAML data to a file
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
     output_path = output_dir + output_file
-    with open(output_path, 'w') as f:
-        yaml.dump(data, f)
+    if os.path.exists(output_path):
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    else:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f)
+
+################CMS#######################
+
+
+def exporter_cms(file_path, output_file, output_dir):
+    # Read CSV file into pandas
+    df = pd.read_csv(file_path)
+
+    # Filter the data based on the condition
+    df_filtered = df[df['Exporter_name_app'] == 'exporter_cms']
+
+    # Add new columns for username and password
+    df['Username'] = 'root'
+    df['Password'] = 'ENC'
+
+    # Create an empty dictionary to store the YAML output
+    yaml_output = {}
+
+    # Initialize exporter_cms key in the YAML dictionary
+    yaml_output['exporter_cms'] = {}
+
+    # Iterate over rows in filtered dataframe
+    for index, row in df.iterrows():
+        exporter_name = 'exporter_cms'
+        hostname = row['Hostnames']
+        ip_address = row['IP Address']
+        listen_port = int(row['App-Listen-Port'])
+        location = row['Location']
+        country = row['Country']
+        username = row['Username']
+        password = row['Password']
+
+        if hostname not in yaml_output.get(exporter_name, {}):
+            yaml_output[exporter_name][hostname] = {}
+
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['listen_port'] = listen_port
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
+        yaml_output[exporter_name][hostname]['username'] = username
+        yaml_output[exporter_name][hostname]['password'] = password
+
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    output_path = output_dir + output_file
+    if os.path.exists(output_path):
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    else:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f)
+
+
 
 def run_scripts(scripts, file_path, output_file, output_dir):
     for script in scripts:
@@ -143,13 +224,13 @@ if __name__ == '__main__':
 
     # If "all" is specified, run all scripts
     if 'all' in script_names:
-        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_ssl'], file_path, output_file, output_dir)
+        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_ssl', 'exporter_cms'], file_path, output_file, output_dir)
     else:
         exporter_names = script_names
 
-# Initialize exporter_names to empty list if not specified
-if not exporter_names:
-    exporter_names = []
+    # Initialize exporter_names to empty list if not specified
+    if not exporter_names:
+        exporter_names = []
 
     # Loop through the exporter names and call the corresponding function
     for exporter_name in exporter_names:
@@ -159,3 +240,5 @@ if not exporter_names:
             exporter_blackbox(file_path, output_file, output_dir)
         elif exporter_name == 'exporter_ssl':
             exporter_ssl(file_path, output_file, output_dir)
+        elif exporter_name == 'exporter_cms':
+            exporter_cms(file_path, output_file, output_dir)
