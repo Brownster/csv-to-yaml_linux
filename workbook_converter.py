@@ -381,7 +381,55 @@ def exporter_gateway(file_path, output_file, output_dir):
     else:
         with open(output_path, 'w') as f:
             yaml.dump(yaml_output, f)            
-            
+ 
+
+#################BREEZE##############
+
+def exporter_breeze(file_path, output_file, output_dir):
+    
+    # Read CSV file into pandas
+    df = pd.read_csv(file_path)
+
+    # Filter rows based on condition
+    df = df[df['Exporter_name_app'] == 'exporter_breeze']
+
+    # Create an empty dictionary to store the YAML output
+    yaml_output = {}
+
+    # Initialize exporter_breeze key in the YAML dictionary
+    yaml_output['exporter_breeze'] = {}
+
+    # Iterate over rows in filtered dataframe
+    for index, row in df.iterrows():
+        exporter_name = 'exporter_breeze'
+        hostname = row['Hostnames']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if hostname not in yaml_output.get(exporter_name, {}):
+            yaml_output[exporter_name][hostname] = {}
+
+        if ip_address not in yaml_output[exporter_name][hostname]:
+            yaml_output[exporter_name][hostname][ip_address] = {}
+
+        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+        yaml_output[exporter_name][hostname][ip_address]['location'] = location
+        yaml_output[exporter_name][hostname][ip_address]['country'] = country
+        yaml_output[exporter_name][hostname][ip_address]['username'] = 'root'
+        yaml_output[exporter_name][hostname][ip_address]['password'] = 'ENC'
+
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    output_path = output_dir + output_file
+    if os.path.exists(output_path):
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    else:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f)   
+
+
+
 ##################MAIN LOOP###################
 
 def run_scripts(scripts, file_path, output_file, output_dir):
@@ -392,7 +440,21 @@ def run_scripts(scripts, file_path, output_file, output_dir):
             exporter_blackbox(file_path, output_file, output_dir)
         elif script == 'exporter_ssl':
             exporter_ssl(file_path, output_file, output_dir)
-
+        elif script == 'exporter_cms':
+            exporter_cms(file_path, output_file, output_dir)
+        elif script == 'exporter_windows':
+            exporter_windows(file_path, output_file, output_dir)            
+        elif script == 'exporter_avayasbc':
+            exporter_avayasbc(file_path, output_file, output_dir)  
+        elif script == 'exporter_verint':
+            exporter_verint(file_path, output_file, output_dir)  
+        elif script == 'exporter_gateway':
+            exporter_gateway(file_path, output_file, output_dir)             
+         elif script == 'exporter_breeze':
+            exporter_breeze(file_path, output_file, output_dir)  
+            
+            
+            
 if __name__ == '__main__':
     # Get the script names from command line arguments
     script_names = sys.argv[1:]
@@ -408,7 +470,7 @@ if __name__ == '__main__':
 
     # If "all" is specified, run all scripts
     if 'all' in script_names:
-        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms'], file_path, output_file, output_dir)
+        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms'], file_path, output_file, output_dir)
     else:
         exporter_names = script_names
 
@@ -433,4 +495,6 @@ if __name__ == '__main__':
         elif exporter_name == 'exporter_verint':
             exporter_verint(file_path, output_file, output_dir)
         elif exporter_name == 'exporter_gateway':
-            exporter_verint(file_path, output_file, output_dir)            
+            exporter_gateway(file_path, output_file, output_dir) 
+        elif exporter_name == 'exporter_breeze':
+            exporter_breeze(file_path, output_file, output_dir)               
