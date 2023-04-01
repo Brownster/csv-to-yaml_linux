@@ -16,16 +16,25 @@ def exporter_jmx(file_path, output_file, output_dir):
     yaml_output['exporter_jmx'] = {}
 
     # Iterate over rows in filtered dataframe
+    new_entries = []
     for index, row in df.iterrows():
         hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
 
+        if ip_exists_in_yaml('exporter_jmx', ip_address, output_dir=output_dir, output_file=output_file):
+            continue
+
         if hostname not in yaml_output.get('exporter_jmx', {}):
             yaml_output['exporter_jmx'][hostname] = {}
 
-        ports = [8081, 8082]
+        jmx_ports = row.get('jmx_ports', None)
+        if jmx_ports is None:
+            ports = [8081, 8082]
+        else:
+            ports = [int(port) for port in jmx_ports.split(',')]
+
         for port in ports:
             if port not in yaml_output['exporter_jmx'][hostname]:
                 yaml_output['exporter_jmx'][hostname][str(port)] = {}
@@ -34,11 +43,10 @@ def exporter_jmx(file_path, output_file, output_dir):
             yaml_output['exporter_jmx'][hostname][str(port)]['location'] = location
             yaml_output['exporter_jmx'][hostname][str(port)]['country'] = country
 
-            if port == 8081:
-                yaml_output['exporter_jmx'][hostname][str(port)]['username'] = 'put your username here'
-                yaml_output['exporter_jmx'][hostname][str(port)]['password'] = 'put your password here'
 
     # Write the YAML data to a file
     output_path = os.path.join(output_dir, output_file)
-    with open(output_path, 'w') as f:
+    with open(output_path, 'a') as f:
         yaml.dump(yaml_output, f, default_flow_style=False)
+        print("Exporter JMX completed")
+        print(f"Total number of hosts processed: {len(new_entries)}")
