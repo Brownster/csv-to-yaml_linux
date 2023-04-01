@@ -30,8 +30,6 @@ python script_name.py
 
 Replace script_name.py with the name you saved the script as. This will open the GUI, and you can use it to generate the YAML files based on your input data.
 
-
-
 windows exe built with (when in folder of csv file):
 
 C:\Python39\python.exe C:\Python39\Lib\site-packages\PyInstaller\__main__.py --onefile workbook_converter_gui.py
