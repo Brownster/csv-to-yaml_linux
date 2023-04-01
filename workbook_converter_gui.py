@@ -420,8 +420,8 @@ def exporter_cms(file_path, output_file, output_dir):
 ##################WINDOWS###################
 
 def exporter_windows(file_path, output_file, output_dir):
-    global default_listen_port
     global output_path
+    
     try:
         print("Exporter Windows called")
 
@@ -462,13 +462,8 @@ def exporter_windows(file_path, output_file, output_dir):
         if fqdn not in yaml_output[exporter_name]:
             yaml_output[exporter_name][fqdn] = {}
 
-        # Use default_listen_port if 'App-Listen-Port' is not available
-        listen_port = row.get('App-Listen-Port', default_listen_port)
-        if listen_port == default_listen_port:
-            default_listen_port += 1
-
         yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
-        yaml_output[exporter_name][fqdn]['listen_port'] = listen_port
+        yaml_output[exporter_name][fqdn]['listen_port'] = 9182  # Set to default listen port for Windows
         yaml_output[exporter_name][fqdn]['location'] = location
         yaml_output[exporter_name][fqdn]['country'] = country
 
@@ -482,6 +477,7 @@ def exporter_windows(file_path, output_file, output_dir):
         print(f"Total number of hosts processed: {len(new_entries)}")
     else:
         print("Exporter Windows completed - nothing to do")
+
          
  ##############VERINT###########################
 
@@ -602,12 +598,12 @@ def exporter_avayasbc(file_path, output_file, output_dir):
         if ip_address not in yaml_output[exporter_name][hostname]:
             yaml_output[exporter_name][hostname][ip_address] = {}
 
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = 3601
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['username'] = 'ipcs'
+            yaml_output[exporter_name][hostname][ip_address]['listen_port'] = 3601
+            yaml_output[exporter_name][hostname][ip_address]['location'] = location
+            yaml_output[exporter_name][hostname][ip_address]['country'] = country
+            yaml_output[exporter_name][hostname][ip_address]['username'] = 'ipcs'
 
-        new_entries.append(row)
+            new_entries.append(row)
 
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     if new_entries:
@@ -617,6 +613,7 @@ def exporter_avayasbc(file_path, output_file, output_dir):
         print(f"Total number of hosts processed: {len(new_entries)}")
     else:
         print("Exporter Avaya SBC completed - nothing to do")
+
 
  
 ######################GATEWAY###############
@@ -824,10 +821,14 @@ def exporter_jmx(file_path, output_file, output_dir):
 
     # Write the YAML data to a file
     output_path = os.path.join(output_dir, output_file)
-    with open(output_path, 'a') as f:
-        yaml.dump(yaml_output, f, default_flow_style=False)
+    new_entries_count = len(new_entries)
+    if new_entries_count:
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f, default_flow_style=False)
         print("Exporter JMX completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
+    else:
+        print("Exporter JMX completed - nothing to do")
+    print(f"Total number of hosts processed: {new_entries_count}")
 
 ############ EXPORTER_VMWARE #######################
 
