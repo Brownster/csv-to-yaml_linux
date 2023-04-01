@@ -25,7 +25,7 @@ def exporter_ssl(file_path, output_file, output_dir):
         location = row['Location']
         country = row['Country']
         exporter_app = row['Exporter_name_app']
-        
+
         # Set default listen_port to 443 and change it to 8443 if exporter_avayasbc is specified
         listen_port = 8443 if exporter_app == 'exporter_avayasbc' else 443
 
@@ -43,7 +43,7 @@ def exporter_ssl(file_path, output_file, output_dir):
             'location': location,
             'country': country,
         }
-        
+
         # Increment the processed lines counter
         processed_lines += 1
 
@@ -51,5 +51,7 @@ def exporter_ssl(file_path, output_file, output_dir):
     if yaml_output['exporter_ssl']:
         with open(output_path, 'a') as f:
             yaml.dump(yaml_output, f)
-    print("Exporter converter_SSL completed")
-    print(f"Total number of hosts processed: {processed_lines}")
+        print("Exporter converter_SSL completed")
+        print(f"Total number of hosts processed: {processed_lines}")
+    else:
+        print("Exporter converter_SSL completed - nothing to do")
