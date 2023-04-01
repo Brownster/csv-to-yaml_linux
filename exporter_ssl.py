@@ -2,44 +2,51 @@ import sys
 import pandas as pd
 import yaml
 
-# Get the file path from command line arguments
-file_path = sys.argv[1]
+def exporter_ssl(file_path, output_file, output_dir):
+    print("Exporter converter_SSL called")
+    # Read CSV file into pandas DataFrame
+    df = pd.read_csv(file_path)
 
-# Get the output file name from command line arguments
-output_file = sys.argv[2]
+    # Filter the data based on the condition
+    df_filtered = df[df['Exporter_SSL'] == True]
 
-# Get the output directory from command line arguments
-output_dir = sys.argv[3]
+    # Create an empty dictionary to store the YAML output
+    yaml_output = {}
 
-# Read CSV file into pandas DataFrame
-df = pd.read_csv(file_path)
+    # Initialize exporter_cms key in the YAML dictionary
+    yaml_output['exporter_ssl'] = {}
 
-# Filter the data based on the condition
-df_filtered = df[df['Exporter_SSL'] == True]
+    output_path = os.path.join(output_dir, output_file)
 
-# Create an empty dictionary to hold the final YAML data
-data = {}
+    # Loop through the filtered data and add to the dictionary
+    for _, row in df_filtered.iterrows():
+        exporter_name = 'exporter_ssl'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        exporter_app = row['Exporter_name_app']
+        
+        # Set default listen_port to 443 and change it to 8443 if exporter_avayasbc is specified
+        listen_port = 8443 if exporter_app == 'exporter_avayasbc' else 443
 
-# Loop through the filtered data and add to the dictionary
-for _, row in df_filtered.iterrows():
-    exporter_name = 'exporter_ssl'
-    fqdn = row['FQDN']
-    ip_address = row['IP Address']
-    location = row['Location']
-    country = row['Country']
-    listen_port = 443
-    if exporter_name not in data:
-        data[exporter_name] = {}
-    if fqdn not in data[exporter_name]:
-        data[exporter_name][fqdn] = {}
-    data[exporter_name][fqdn] = {
-        'ip_address': ip_address,
-        'listen_port': listen_port,
-        'location': location,
-        'country': country,
-    }
+        # Check for duplicate entries
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path):
+            continue
 
-# Write the YAML data to a file
-output_path = output_dir + output_file
-with open(output_path, 'w') as f:
-    yaml.dump(data, f)
+        if exporter_name not in yaml_output:
+            yaml_output[exporter_name] = {}
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+        yaml_output[exporter_name][fqdn] = {
+            'ip_address': ip_address,
+            'listen_port': listen_port,
+            'location': location,
+            'country': country,
+        }
+
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    if yaml_output['exporter_ssl']:
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+    print("Exporter converter_SSL completed")
