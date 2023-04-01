@@ -1,7 +1,3 @@
-import sys
-import pandas as pd
-import yaml
-
 def exporter_ssl(file_path, output_file, output_dir):
     print("Exporter converter_SSL called")
     # Read CSV file into pandas DataFrame
@@ -17,6 +13,9 @@ def exporter_ssl(file_path, output_file, output_dir):
     yaml_output['exporter_ssl'] = {}
 
     output_path = os.path.join(output_dir, output_file)
+
+    # Counter to keep track of the number of lines processed
+    processed_lines = 0
 
     # Loop through the filtered data and add to the dictionary
     for _, row in df_filtered.iterrows():
@@ -44,9 +43,13 @@ def exporter_ssl(file_path, output_file, output_dir):
             'location': location,
             'country': country,
         }
+        
+        # Increment the processed lines counter
+        processed_lines += 1
 
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     if yaml_output['exporter_ssl']:
         with open(output_path, 'a') as f:
             yaml.dump(yaml_output, f)
     print("Exporter converter_SSL completed")
+    print(f"Total number of hosts processed: {processed_lines}")
