@@ -2,44 +2,61 @@ import sys
 import pandas as pd
 import yaml
 
-# Get the file path from command line arguments
-file_path = sys.argv[1]
+def exporter_windows(file_path, output_file, output_dir):
+    global output_path
+    
+    try:
+        print("Exporter Windows called")
 
-# Get the output file name from command line arguments
-output_file = sys.argv[2]
+        # Check if file is CSV or Excel
+        file_extension = os.path.splitext(file_path)[1]
+        if file_extension == '.csv':
+            # Read CSV file into pandas
+            df = pd.read_csv(file_path)
+        elif file_extension in ['.xlsx', '.xls']:
+            # Read Excel file into pandas
+            df = pd.read_excel(file_path)
+        else:
+            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
-# Get the output directory from command line arguments
-output_dir = sys.argv[3]
+    # Filter rows based on condition
+    df_filtered = df[df['Exporter_name_os'] == 'exporter_windows']
 
-# Read CSV file into pandas DataFrame
-df = pd.read_csv(file_path)
+    output_path = os.path.join(output_dir, output_file)
 
-# Filter the data based on the condition
-df_filtered = df[df['Exporter_name_os'] == 'exporter_windows']
+    # Initialize exporter_windows key in the YAML dictionary
+    yaml_output = {'exporter_windows': {}}
 
-# Create an empty dictionary to hold the final YAML data
-data = {}
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_windows'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
 
-# Loop through the filtered data and add to the dictionary
-for _, row in df_filtered.iterrows():
-    exporter_name = 'exporter_windows'
-    fqdn = row['FQDN']
-    ip_address = row['IP Address']
-    location = row['Location']
-    country = row['Country']
-    listen_port = 9182
-    if exporter_name not in data:
-        data[exporter_name] = {}
-    if fqdn not in data[exporter_name]:
-        data[exporter_name][fqdn] = {}
-    data[exporter_name][fqdn] = {
-        'ip_address': ip_address,
-        'listen_port': listen_port,
-        'location': location,
-        'country': country,
-    }
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
 
-# Write the YAML data to a file
-output_path = output_dir + output_file
-with open(output_path, 'w') as f:
-    yaml.dump(data, f)
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+
+        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+        yaml_output[exporter_name][fqdn]['listen_port'] = 9182  # Set to default listen port for Windows
+        yaml_output[exporter_name][fqdn]['location'] = location
+        yaml_output[exporter_name][fqdn]['country'] = country
+
+        new_entries.append(row)
+
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    if new_entries:
+        with open(output_path, 'a') as f:
+            yaml.dump(yaml_output, f)
+        print("Exporter Windows completed")
+        print(f"Total number of hosts processed: {len(new_entries)}")
+    else:
+        print("Exporter Windows completed - nothing to do")
