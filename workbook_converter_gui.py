@@ -58,7 +58,7 @@ def exporter_sm(file_path, output_file, output_dir):
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
             # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas
             df = pd.read_excel(file_path)
@@ -119,11 +119,11 @@ def exporter_linux(file_path, output_file, output_dir):
         # Check if file is CSV or Excel
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
-            # Read CSV file into pandas DataFrame
-            df = pd.read_csv(file_path)
+            # Read CSV file into pandas DataFrame, skip first 7 rows
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas DataFrame
-            df = pd.read_excel(file_path, sheet_name='Sheet1')
+            # Read Excel file into pandas DataFrame, start on row 8
+            df = pd.read_excel(file_path, sheet_name='Sheet1', header=8)
         else:
             raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
     except Exception as e:
@@ -136,8 +136,17 @@ def exporter_linux(file_path, output_file, output_dir):
     # Create an empty dictionary to store the YAML output
     yaml_output = {}
 
+    # Check if output file already exists
+    output_path = os.path.join(output_dir, output_file)
+    if os.path.exists(output_path):
+        with open(output_path, 'r') as f:
+            existing_yaml = yaml.load(f, Loader=yaml.FullLoader)
+    else:
+        existing_yaml = {}
+
     # Initialize exporter_linux key in the YAML dictionary
-    yaml_output['exporter_linux'] = {}
+    if 'exporter_linux' not in existing_yaml:
+        existing_yaml['exporter_linux'] = {}
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -147,7 +156,7 @@ def exporter_linux(file_path, output_file, output_dir):
         ip_address = row['IP Address']
 
         # Check if IP address already exists in the output dictionary
-        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_dir + output_file):
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
 
         if pd.isnull(row.get('OS-Listen-Port')):
@@ -161,30 +170,38 @@ def exporter_linux(file_path, output_file, output_dir):
         username = 'your_username_here'
         password = 'your_password_here'
 
-        if exporter_name not in yaml_output:
-            yaml_output[exporter_name] = {}
-        if fqdn not in yaml_output[exporter_name]:
-            yaml_output[exporter_name][fqdn] = {}
-        yaml_output[exporter_name][fqdn] = {
+        if fqdn not in existing_yaml[exporter_name]:
+            existing_yaml[exporter_name][fqdn] = {}
+        existing_yaml[exporter_name][fqdn] = {
             'ip_address': ip_address,
             'listen_port': listen_port,
             'location': location,
-            'country': country,
             'username': username,
-            'password': password
+            'password': password,
+            'country': country
         }
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    # Write the YAML data to a file
+    with open(output_path, 'w') as f:
+        yaml.dump(existing_yaml, f, sort_keys=False)
+
+    # Iterate over rows in filtered dataframe to remove duplicates from the original CSV file
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_linux'
+        ip_address = row['IP Address']
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            # Remove the row from the filtered DataFrame
+            df_filtered = df_filtered.drop(index)
+
+# Write the filtered data to a new CSV file
+    filtered_csv_path = os.path.join(output_dir, 'filtered_exporter_linux.csv')
+    df_filtered.to_csv(filtered_csv_path, index=False)
+
+    # Print summary information
     if new_entries:
-        output_path = os.path.join(output_dir, output_file)
-        if os.path.exists(output_path):
-            with open(output_path, 'a') as f:
-                yaml.dump(yaml_output, f)
-        else:
-            with open(output_path, 'w') as f:
-                yaml.dump(yaml_output, f)
         print(f"Total number of hosts processed: {len(new_entries)}")
         print("Exporter converter_linux completed")
     else:
@@ -194,11 +211,15 @@ def exporter_linux(file_path, output_file, output_dir):
 
 def exporter_blackbox(file_path, output_file, output_dir):
     print("Exporter converter_blackbox called")
+    
+    # Define the output_path at the beginning of the function
+    output_path = os.path.join(output_dir, output_file)
+
     # Check if file is CSV or Excel
     file_extension = os.path.splitext(file_path)[1]
     if file_extension == '.csv':
         # Read CSV file into pandas
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, skiprows=7)
     elif file_extension in ['.xlsx', '.xls']:
         # Read Excel file into pandas
         df = pd.read_excel(file_path, sheet_name='Sheet1')
@@ -277,9 +298,22 @@ def exporter_blackbox(file_path, output_file, output_dir):
 ###################SSL####################
 
 def exporter_ssl(file_path, output_file, output_dir):
-    print("Exporter converter_SSL called")
-    # Read CSV file into pandas DataFrame
-    df = pd.read_csv(file_path)
+    try:
+        print("Exporter SSL called")
+
+        # Check if file is CSV or Excel
+        file_extension = os.path.splitext(file_path)[1]
+        if file_extension == '.csv':
+            # Read CSV file into pandas
+            df = pd.read_csv(file_path, skiprows=7)
+        elif file_extension in ['.xlsx', '.xls']:
+            # Read Excel file into pandas
+            df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=7)
+        else:
+            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
     # Filter the data based on the condition
     df_filtered = df[df['Exporter_SSL'] == True]
@@ -329,10 +363,10 @@ def exporter_ssl(file_path, output_file, output_dir):
     if yaml_output['exporter_ssl']:
         with open(output_path, 'a') as f:
             yaml.dump(yaml_output, f)
-        print("Exporter converter_SSL completed")
+        print("Exporter SSL completed")
         print(f"Total number of hosts processed: {processed_lines}")
     else:
-        print("Exporter converter_SSL completed - nothing to do")
+        print("Exporter SSL completed - nothing to do")
 
 
 ################CMS#######################
@@ -348,7 +382,7 @@ def exporter_cms(file_path, output_file, output_dir):
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
             # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas
             df = pd.read_excel(file_path)
@@ -429,7 +463,7 @@ def exporter_windows(file_path, output_file, output_dir):
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
             # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas
             df = pd.read_excel(file_path)
@@ -491,7 +525,7 @@ def exporter_verint(file_path, output_file, output_dir):
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
             # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas
             df = pd.read_excel(file_path, sheet_name='Sheet2')
@@ -562,7 +596,7 @@ def exporter_avayasbc(file_path, output_file, output_dir):
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
             # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas, starting from row 3
             df = pd.read_excel(file_path, sheet_name='Sheet2', header=2, skiprows=[0, 1])
@@ -628,7 +662,7 @@ def exporter_gateway(file_path, output_file, output_dir):
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
             # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas
             df = pd.read_excel(file_path, sheet_name='Sheet2')
@@ -701,8 +735,8 @@ def exporter_breeze(file_path, output_file, output_dir):
         # Check if file is CSV or Excel
         file_extension = os.path.splitext(file_path)[1]
         if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path)
+        # Read CSV file into pandas           
+            df = pd.read_csv(file_path, skiprows=7)
         elif file_extension in ['.xlsx', '.xls']:
             # Read Excel file into pandas
             df = pd.read_excel(file_path, sheet_name='Sheet2')
@@ -778,8 +812,24 @@ def exporter_breeze(file_path, output_file, output_dir):
 
 ######## EXPORTER_JMX ############
 def exporter_jmx(file_path, output_file, output_dir):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    global default_listen_port
+    global output_path
+    try:
+        print("Exporter Breeze called")
+
+        # Check if file is CSV or Excel
+        file_extension = os.path.splitext(file_path)[1]
+        if file_extension == '.csv':
+        # Read CSV file into pandas           
+            df = pd.read_csv(file_path, skiprows=7)
+        elif file_extension in ['.xlsx', '.xls']:
+            # Read Excel file into pandas
+            df = pd.read_excel(file_path, sheet_name='Sheet2')
+        else:
+            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
     # Filter rows based on condition
     df = df[df['Exporter_name_app'] == 'exporter_jmx']
@@ -798,7 +848,8 @@ def exporter_jmx(file_path, output_file, output_dir):
         location = row['Location']
         country = row['Country']
 
-        if ip_exists_in_yaml('exporter_jmx', ip_address, output_dir=output_dir, output_file=output_file):
+        output_path = os.path.join(output_dir, output_file)
+        if ip_exists_in_yaml('exporter_jmx', ip_address, output_path=output_path):
             continue
 
         if hostname not in yaml_output.get('exporter_jmx', {}):
@@ -818,9 +869,9 @@ def exporter_jmx(file_path, output_file, output_dir):
             yaml_output['exporter_jmx'][hostname][str(port)]['location'] = location
             yaml_output['exporter_jmx'][hostname][str(port)]['country'] = country
 
+        new_entries.append(row)
 
     # Write the YAML data to a file
-    output_path = os.path.join(output_dir, output_file)
     new_entries_count = len(new_entries)
     if new_entries_count:
         with open(output_path, 'a') as f:
@@ -833,8 +884,9 @@ def exporter_jmx(file_path, output_file, output_dir):
 ############ EXPORTER_VMWARE #######################
 
 def exporter_vmware(file_path, output_file, output_dir):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    # Read CSV file into pandas           
+    df = pd.read_csv(file_path, skiprows=7)
+
 
     # Filter rows based on condition
     df_filtered = df[df['Exporter_name_app'] == 'exporter_vmware']
@@ -887,9 +939,28 @@ def exporter_vmware(file_path, output_file, output_dir):
 #################### EXPORTER_KAFKA ################
 
 
+import os
+import pandas as pd
+
 def exporter_kafka(file_path, output_file, output_dir):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    global output_path
+
+    try:
+        print("Exporter Kafka called")
+
+        # Check if file is CSV or Excel
+        file_extension = os.path.splitext(file_path)[1]
+        if file_extension == '.csv':
+            # Read CSV file into pandas
+            df = pd.read_csv(file_path, skiprows=7)
+        elif file_extension in ['.xlsx', '.xls']:
+            # Read Excel file into pandas
+            df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=7)
+        else:
+            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
     # Filter rows based on condition
     df = df[df['Exporter_name_app'] == 'exporter_kafka']
@@ -908,7 +979,8 @@ def exporter_kafka(file_path, output_file, output_dir):
         location = row['Location']
         country = row['Country']
 
-        if ip_exists_in_yaml('exporter_kafka', ip_address, output_dir=output_dir, output_file=output_file):
+        output_path = os.path.join(output_dir, output_file)
+        if ip_exists_in_yaml('exporter_kafka', ip_address, output_path=output_path):
             continue
 
         if hostname not in yaml_output.get('exporter_kafka', {}):
@@ -923,23 +995,22 @@ def exporter_kafka(file_path, output_file, output_dir):
         new_entries.append(row)
 
     # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        output_path = os.path.join(output_dir, output_file)
+    new_entries_count = len(new_entries)
+    if new_entries_count:
         with open(output_path, 'a') as f:
             yaml.dump(yaml_output, f, default_flow_style=False)
         print("Exporter Kafka completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
     else:
         print("Exporter Kafka completed - nothing to do")
-    with open(output_path, 'w') as f:
-        yaml.dump(yaml_output, f, default_flow_style=False)
+    print(f"Total number of hosts processed: {new_entries_count}")
 
 
 ########## EXPORTER_CALLBACK ################################
 
 def exporter_callback(file_path, output_file, output_dir):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    # Read CSV file into pandas           
+    df = pd.read_csv(file_path, skiprows=7)
+
 
     # Filter rows based on condition
     df = df[df['Exporter_name_app'] == 'exporter_callback']
@@ -1006,8 +1077,9 @@ def exporter_callback(file_path, output_file, output_dir):
 ########## EXPORTER_DRAC ############
 
 def exporter_drac(file_path, output_file, output_dir):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    # Read CSV file into pandas           
+    df = pd.read_csv(file_path, skiprows=7)
+
 
     # Filter rows based on condition
     df_filtered = df[df['Exporter_name_app'] == 'exporter_drac']
@@ -1061,8 +1133,9 @@ import pandas as pd
 import yaml
 
 def exporter_genesyscloud(file_path, output_file, output_dir):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    # Read CSV file into pandas           
+    df = pd.read_csv(file_path, skiprows=7)
+
 
     # Filter rows based on condition
     df = df[df['Exporter_name_app'] == 'exporter_genesyscloud']
@@ -1129,8 +1202,10 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
 ############# EXPORTER_ACM ###############
 
 def exporter_acm(file_path, output_file, output_dir, default_listen_port=8081):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    print("Exporter ACM called")
+
+    # Read CSV file into pandas           
+    df = pd.read_csv(file_path, skiprows=7)
 
     # Filter rows based on condition
     df = df[df['Exporter_name_app'] == 'exporter_acm']
@@ -1143,6 +1218,10 @@ def exporter_acm(file_path, output_file, output_dir, default_listen_port=8081):
 
     # Iterate over rows in filtered dataframe
     new_entries = []
+    
+    # Create output_path
+    output_path = os.path.join(output_dir, output_file)
+    
     for index, row in df.iterrows():
         hostname = row['FQDN']
         ip_address = row['IP Address']
@@ -1152,7 +1231,8 @@ def exporter_acm(file_path, output_file, output_dir, default_listen_port=8081):
         ssh_username = row.get('ssh_username', 'put your username here')
         ssh_password = row.get('ssh_password', 'put your password here')
 
-        if ip_exists_in_yaml('exporter_acm', ip_address, output_dir=output_dir, output_file=output_file):
+        if ip_exists_in_yaml('exporter_acm', ip_address, output_path=output_path):
+            print(f"IP {ip_address} already exists in the YAML file.")
             continue
 
         if hostname not in yaml_output.get('exporter_acm', {}):
@@ -1174,18 +1254,21 @@ def exporter_acm(file_path, output_file, output_dir, default_listen_port=8081):
         new_entries.append(row)
 
     # Write the YAML data to a file
-    output_path = os.path.join(output_dir, output_file)
-    with open(output_path, 'w') as f:
-        yaml.dump(yaml_output, f, default_flow_style=False)
-        print(f"Exporter ACM completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
+    if new_entries:
+        with open(output_path, 'w') as f:
+            yaml.dump(yaml_output, f, default_flow_style=False)
+            print(f"Exporter ACM completed")
+            print(f"Total number of hosts processed: {len(new_entries)}")
+    else:
+        print("Exporter ACM completed - nothing to do")
+
 
 
 ############# WEBLM_EXPORTER ##########
 
 def exporter_weblm(file_path, output_file, output_dir, default_listen_port=8081):
-    # Read CSV file into pandas
-    df = pd.read_csv(file_path)
+    # Read CSV file into pandas           
+    df = pd.read_csv(file_path, skiprows=7)
 
     # Filter rows based on condition
     df = df[df['Exporter_name_app'] == 'exporter_weblm']
@@ -1223,6 +1306,8 @@ def exporter_weblm(file_path, output_file, output_dir, default_listen_port=8081)
 
         new_entries.append(row)
 
+
+####### check if exists in yaml section ########
     # Write the YAML data to a file
     output_path = os.path.join(output_dir, output_file)
     with open(output_path, 'w') as f:
@@ -1230,8 +1315,6 @@ def exporter_weblm(file_path, output_file, output_dir, default_listen_port=8081)
         print(f"Exporter WebLM completed")
         print(f"Total number of hosts processed: {len(new_entries)}")
 
-
-####### check if exists in yaml section ########
 
 def ip_exists_in_yaml(exporter_name, ip_address, output_path):
     """
@@ -1247,6 +1330,7 @@ def ip_exists_in_yaml(exporter_name, ip_address, output_path):
                 if ip_address in ip_data:
                     return True
     return False
+
 
 ################## MAIN SECTION ###################
 def run_exporters():
