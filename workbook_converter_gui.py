@@ -49,29 +49,19 @@ selected_exporter_names = []
 ################  EXPORTER_SM  ###########################
 
 def exporter_sm(file_path, output_file, output_dir):
-    global listen_port_var
+    global default_listen_port
     global output_path
+    yaml_output = {'exporter_sm': {}}
     try:
-        print("Exporter SM called")
+        print("Exporter Breesmze called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path)
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
-        print("Exporter SM failed")
         return
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_sm']
-
+    df_filtered = filter_rows_by_exporter(df, 'exporter_sm')
     output_path = os.path.join(output_dir, output_file)
 
     # Initialize exporter_sm key in the YAML dictionary
@@ -98,139 +88,37 @@ def exporter_sm(file_path, output_file, output_dir):
         
         new_entries.append(row)
 
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
     # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter SM completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter SM completed - nothing to do")
+    process_exporter('exporter_sm', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 
 ###############LINUX#########################
 
 def exporter_linux(file_path, output_file, output_dir):
-    global default_listen_port
-    global output_path
-    try:
-        print("Exporter converter_linux called")
+    exporter_generic('exporter_linux', file_path, output_file, output_dir)
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas DataFrame, skip first 7 rows
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas DataFrame, start on row 8
-            df = pd.read_excel(file_path, sheet_name='Sheet1', header=8)
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
-    except Exception as e:
-        print(f"Error: {e}")
-        return
-
-    # Filter the data based on the condition
-    df_filtered = df[df['Exporter_name_os'] == 'exporter_linux']
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
-
-    # Check if output file already exists
-    output_path = os.path.join(output_dir, output_file)
-    if os.path.exists(output_path):
-        with open(output_path, 'r') as f:
-            existing_yaml = yaml.load(f, Loader=yaml.FullLoader)
-    else:
-        existing_yaml = {}
-
-    # Initialize exporter_linux key in the YAML dictionary
-    if 'exporter_linux' not in existing_yaml:
-        existing_yaml['exporter_linux'] = {}
-
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    for index, row in df_filtered.iterrows():
-        exporter_name = 'exporter_linux'
-        fqdn = row['FQDN']
-        ip_address = row['IP Address']
-
-        # Check if IP address already exists in the output dictionary
-        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
-            continue
-
-        if pd.isnull(row.get('OS-Listen-Port')):
-            listen_port = default_listen_port
-            default_listen_port += 1
-        else:
-            listen_port = int(row['OS-Listen-Port'])
-
-        location = row['Location']
-        country = row['Country']
-        username = 'your_username_here'
-        password = 'your_password_here'
-
-        if fqdn not in existing_yaml[exporter_name]:
-            existing_yaml[exporter_name][fqdn] = {}
-        existing_yaml[exporter_name][fqdn] = {
-            'ip_address': ip_address,
-            'listen_port': listen_port,
-            'location': location,
-            'username': username,
-            'password': password,
-            'country': country
-        }
-
-        new_entries.append(row)
-
-    # Write the YAML data to a file
-    with open(output_path, 'w') as f:
-        yaml.dump(existing_yaml, f, sort_keys=False)
-
-    # Iterate over rows in filtered dataframe to remove duplicates from the original CSV file
-    for index, row in df_filtered.iterrows():
-        exporter_name = 'exporter_linux'
-        ip_address = row['IP Address']
-
-        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
-            # Remove the row from the filtered DataFrame
-            df_filtered = df_filtered.drop(index)
-
-# Write the filtered data to a new CSV file
-    filtered_csv_path = os.path.join(output_dir, 'filtered_exporter_linux.csv')
-    df_filtered.to_csv(filtered_csv_path, index=False)
-
-    # Print summary information
-    if new_entries:
-        print(f"Total number of hosts processed: {len(new_entries)}")
-        print("Exporter converter_linux completed")
-    else:
-        print("Exporter converter_linux completed - nothing to do")
 
 #################  BlackBox  ##################
 
 def exporter_blackbox(file_path, output_file, output_dir):
-    print("Exporter converter_blackbox called")
-    
-    # Define the output_path at the beginning of the function
+    global default_listen_port
+    global output_path
+    yaml_output = {'exporter_blackbox': {}}
+    try:
+        print("Exporter Blackbox called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_blackbox')
     output_path = os.path.join(output_dir, output_file)
-
-    # Check if file is CSV or Excel
-    file_extension = os.path.splitext(file_path)[1]
-    if file_extension == '.csv':
-        # Read CSV file into pandas
-        df = pd.read_csv(file_path, skiprows=7)
-    elif file_extension in ['.xlsx', '.xls']:
-        # Read Excel file into pandas
-        df = pd.read_excel(file_path, sheet_name='Sheet1')
-    else:
-        raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
-
-    # Filter rows based on condition
-    df = df[(df['icmp'] == True) & (df['ssh-banner'] == True)]
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
 
     # Initialize exporter_blackbox key in the YAML dictionary
     yaml_output['exporter_blackbox'] = {}
@@ -243,7 +131,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
     new_entries = []
     for index, row in df.iterrows():
         exporter_name = 'exporter_blackbox'
-        hostname = row['Hostnames']
+        hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
@@ -272,30 +160,18 @@ def exporter_blackbox(file_path, output_file, output_dir):
                 'location': location,
                 'country': country
             }
-            if ssh_username_present and not pd.isna(row['ssh_username']):
-                yaml_output[exporter_name][hostname][ssh_ip_address]['username'] = row['ssh_username']
-            else:
-                yaml_output[exporter_name][hostname][ssh_ip_address]['username'] = 'root'
-
-            if ssh_password_present and not pd.isna(row['ssh_password']):
-                yaml_output[exporter_name][hostname][ssh_ip_address]['password'] = row['ssh_password']
-            else:
-                yaml_output[exporter_name][hostname][ssh_ip_address]['password'] = 'ENC'
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    # Write the YAML data to a file, either updating the existing file or creating a new file
     output_path = os.path.join(output_dir, output_file)
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter converter_blackbox completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter converter_blackbox completed - nothing to do")
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    process_exporter('exporter_gateway', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
 ###################SSL####################
+
 
 def exporter_ssl(file_path, output_file, output_dir):
     try:
@@ -325,6 +201,9 @@ def exporter_ssl(file_path, output_file, output_dir):
     yaml_output['exporter_ssl'] = {}
 
     output_path = os.path.join(output_dir, output_file)
+
+    # Initialize new_entries list
+    new_entries = []
 
     # Counter to keep track of the number of lines processed
     processed_lines = 0
@@ -356,126 +235,35 @@ def exporter_ssl(file_path, output_file, output_dir):
             'country': country,
         }
 
-        # Increment the processed lines counter
+        # Increment the processed lines counter and append the row to new_entries
         processed_lines += 1
+        new_entries.append(row)
 
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
     # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if yaml_output['exporter_ssl']:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter SSL completed")
-        print(f"Total number of hosts processed: {processed_lines}")
-    else:
-        print("Exporter SSL completed - nothing to do")
-
+    process_exporter('exporter_ssl', existing_yaml_output, new_entries, yaml_output, output_path)
 
 ################CMS#######################
 
-
 def exporter_cms(file_path, output_file, output_dir):
+    exporter_generic('exporter_cms', file_path, output_file, output_dir)
+
+##################WINDOWS###################
+   
+def exporter_windows(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
     try:
-        print("Exporter CMS called")
-
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path)
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
-    except Exception as e:
-        print(f"Error: {e}")
-        return
-
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_cms']
-
-    # Check if optional headers are present
-    ssh_username_present = 'ssh_username' in df.columns
-    ssh_password_present = 'ssh_password' in df.columns
-
-    output_path = os.path.join(output_dir, output_file)
-
-    # Initialize exporter_cms key in the YAML dictionary
-    yaml_output = {'exporter_cms': {}}
-
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    for index, row in df_filtered.iterrows():
-        exporter_name = 'exporter_cms'
-        hostname = row['Hostnames']
-        ip_address = row['IP Address']
-        location = row['Location']
-        country = row['Country']
-
-        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
-            continue
-
-        if hostname not in yaml_output[exporter_name]:
-            yaml_output[exporter_name][hostname] = {}
-
-        # Use default_listen_port if 'App-Listen-Port' is not available
-        listen_port = row.get('App-Listen-Port', default_listen_port)
-        if listen_port == default_listen_port:
-            default_listen_port += 1
-
-        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
-        yaml_output[exporter_name][hostname]['listen_port'] = listen_port
-        yaml_output[exporter_name][hostname]['location'] = location
-        yaml_output[exporter_name][hostname]['country'] = country
-
-        # Use the values from the optional headers if present, otherwise use the placeholders
-        if ssh_username_present and not pd.isna(row['ssh_username']):
-            yaml_output[exporter_name][hostname]['username'] = row['ssh_username']
-        else:
-            yaml_output[exporter_name][hostname]['username'] = 'root'
-
-        if ssh_password_present and not pd.isna(row['ssh_password']):
-            yaml_output[exporter_name][hostname]['password'] = row['ssh_password']
-        else:
-            yaml_output[exporter_name][hostname]['password'] = 'ENC'
-
-        new_entries.append(row)
-
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter CMS completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter CMS completed - nothing to do")
-
-##################WINDOWS###################
-
-def exporter_windows(file_path, output_file, output_dir):
-    global output_path
-    
-    try:
         print("Exporter Windows called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path)
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_os'] == 'exporter_windows']
-
+    df_filtered = filter_rows_by_exporter(df, 'exporter_windows')
     output_path = os.path.join(output_dir, output_file)
 
     # Initialize exporter_windows key in the YAML dictionary
@@ -503,14 +291,10 @@ def exporter_windows(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter Windows completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Windows completed - nothing to do")
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_windows', existing_yaml_output, new_entries, yaml_output, output_path)
 
          
  ##############VERINT###########################
@@ -518,26 +302,17 @@ def exporter_windows(file_path, output_file, output_dir):
 def exporter_verint(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
+    yaml_output = {'exporter_verint': {}}
     try:
         print("Exporter Verint called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path, sheet_name='Sheet2')
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_verint']
-
+    df_filtered = filter_rows_by_exporter(df, 'exporter_verint')
     output_path = os.path.join(output_dir, output_file)
 
     # Initialize exporter_verint key in the YAML dictionary
@@ -547,7 +322,7 @@ def exporter_verint(file_path, output_file, output_dir):
     new_entries = []
     for index, row in df_filtered.iterrows():
         exporter_name = 'exporter_verint'
-        hostname = row['FQDN']
+        fqdn = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
@@ -555,32 +330,20 @@ def exporter_verint(file_path, output_file, output_dir):
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
 
-        if hostname not in yaml_output[exporter_name]:
-            yaml_output[exporter_name][hostname] = {}
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
 
-        if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
-
-        # Use default_listen_port if 'App-Listen-Port' is not available
-        listen_port = row.get('App-Listen-Port', default_listen_port)
-        if listen_port == default_listen_port:
-            default_listen_port += 1
-
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = listen_port
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['username'] = 'ipcs'
+        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+        yaml_output[exporter_name][fqdn]['listen_port'] = 9182
+        yaml_output[exporter_name][fqdn]['location'] = location
+        yaml_output[exporter_name][fqdn]['country'] = country
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter Verint completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Verint completed - nothing to do")
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_verint', existing_yaml_output, new_entries, yaml_output, output_path)
           
             
             
@@ -589,26 +352,17 @@ def exporter_verint(file_path, output_file, output_dir):
 def exporter_avayasbc(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
+    yaml_output = {'exporter_avayasbc': {}}
     try:
-        print("Exporter Avaya SBC called")
+        print("Exporter SBC called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas, starting from row 3
-            df = pd.read_excel(file_path, sheet_name='Sheet2', header=2, skiprows=[0, 1])
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_sbc']
-
+    df_filtered = filter_rows_by_exporter(df, 'exporter_avayasbc')
     output_path = os.path.join(output_dir, output_file)
 
     # Initialize exporter_avayasbc key in the YAML dictionary
@@ -639,42 +393,28 @@ def exporter_avayasbc(file_path, output_file, output_dir):
 
             new_entries.append(row)
 
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
     # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter Avaya SBC completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Avaya SBC completed - nothing to do")
+    process_exporter('exporter_avayasbc', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
- 
 ######################GATEWAY###############
 
 def exporter_gateway(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
+
     try:
         print("Exporter Gateway called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path, sheet_name='Sheet2')
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_gateway']
-
+    df_filtered = filter_rows_by_exporter(df, 'exporter_gateway')
     output_path = os.path.join(output_dir, output_file)
 
     # Initialize exporter_gateway key in the YAML dictionary
@@ -714,191 +454,62 @@ def exporter_gateway(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
+    existing_yaml_output = load_existing_yaml(output_path)  # Add this line to load existing YAML data
     # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter Gateway completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Gateway completed - nothing to do")
+    process_exporter('exporter_gateway', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
 #################BREEZE##############
 
 def exporter_breeze(file_path, output_file, output_dir):
-    global default_listen_port
-    global output_path
-    try:
-        print("Exporter Breeze called")
-
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-        # Read CSV file into pandas           
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path, sheet_name='Sheet2')
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
-    except Exception as e:
-        print(f"Error: {e}")
-        return
-
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_breeze']
-
-    output_path = os.path.join(output_dir, output_file)
-
-
-    # Define ip_address variable outside the if block
-    ip_address = None
-
-    # Check if optional headers are present
-    ssh_username_present = 'ssh_username' in df.columns
-    ssh_password_present = 'ssh_password' in df.columns
-
-    # Initialize exporter_breeze key in the YAML dictionary
-    yaml_output = {'exporter_breeze': {}}
-
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    for index, row in df_filtered.iterrows():
-        exporter_name = 'exporter_breeze'
-        hostname = row['Hostnames']
-        # Assign ip_address to the current row
-        ip_address = row['IP Address']
-        location = row['Location']
-        country = row['Country']
-
-        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
-            continue
-
-        if hostname not in yaml_output[exporter_name]:
-            yaml_output[exporter_name][hostname] = {}
-
-        if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
-
-        if pd.isna(row['App-Listen-Port']):
-            yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(default_listen_port.get())
-        else:
-            yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
-        # Use the values from the optional headers if present, otherwise use the placeholders
-        if ssh_username_present and not pd.isna(row['ssh_username']):
-            yaml_output[exporter_name][hostname][ip_address]['username'] = row['ssh_username']
-        else:
-            yaml_output[exporter_name][hostname][ip_address]['username'] = 'root'
-
-        if ssh_password_present and not pd.isna(row['ssh_password']):
-            yaml_output[exporter_name][hostname][ip_address]['password'] = row['ssh_password']
-        else:
-            yaml_output[exporter_name][hostname][ip_address]['password'] = 'ENC'
-        
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        
-        new_entries.append(row)
-
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f)
-        print("Exporter breeze completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Breeze completed - nothing to do")
+    exporter_generic('exporter_breeze', file_path, output_file, output_dir)
 
 ######## EXPORTER_JMX ############
 def exporter_jmx(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-    try:
-        print("Exporter Breeze called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-        # Read CSV file into pandas           
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path, sheet_name='Sheet2')
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    try:
+        print("Exporter JMX called")
+
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Filter rows based on condition
-    df = df[df['Exporter_name_app'] == 'exporter_jmx']
-
+    df_filtered = filter_rows_by_exporter(df, 'exporter_jmx')
     # Create an empty dictionary to store the YAML output
-    yaml_output = {}
 
-    # Initialize exporter_jmx key in the YAML dictionary
-    yaml_output['exporter_jmx'] = {}
+    yaml_output = {'exporter_jmx': {}}
+    for index, row in df_filtered.iterrows():
+        process_row_jmx(row, yaml_output)
 
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    for index, row in df.iterrows():
-        hostname = row['FQDN']
-        ip_address = row['IP Address']
-        location = row['Location']
-        country = row['Country']
+    output_path = os.path.join(output_dir, output_file)
 
-        output_path = os.path.join(output_dir, output_file)
-        if ip_exists_in_yaml('exporter_jmx', ip_address, output_path=output_path):
-            continue
+    new_entries = df_filtered.to_dict('records')
+    existing_yaml_output = load_existing_yaml(output_path)
 
-        if hostname not in yaml_output.get('exporter_jmx', {}):
-            yaml_output['exporter_jmx'][hostname] = {}
-
-        jmx_ports = row.get('jmx_ports', None)
-        if jmx_ports is None:
-            ports = [8081, 8082]
-        else:
-            ports = [int(port) for port in jmx_ports.split(',')]
-
-        for port in ports:
-            if port not in yaml_output['exporter_jmx'][hostname]:
-                yaml_output['exporter_jmx'][hostname][str(port)] = {}
-
-            yaml_output['exporter_jmx'][hostname][str(port)]['ip_address'] = ip_address
-            yaml_output['exporter_jmx'][hostname][str(port)]['location'] = location
-            yaml_output['exporter_jmx'][hostname][str(port)]['country'] = country
-
-        new_entries.append(row)
-
-    # Write the YAML data to a file
-    new_entries_count = len(new_entries)
-    if new_entries_count:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-        print("Exporter JMX completed")
-    else:
-        print("Exporter JMX completed - nothing to do")
-    print(f"Total number of hosts processed: {new_entries_count}")
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_jmx', existing_yaml_output, new_entries, yaml_output, output_path)
 
 ############ EXPORTER_VMWARE #######################
 
 def exporter_vmware(file_path, output_file, output_dir):
-    # Read CSV file into pandas           
-    df = pd.read_csv(file_path, skiprows=7)
+    global default_listen_port
+    global output_path
+    yaml_output = {'exporter_weblm': {}}
+    try:
+        print("Exporter vmware called")
 
+        df = read_input_file(file_path)
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_vmware']
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
-    # Define output path
+    df_filtered = filter_rows_by_exporter(df, 'exporter_vmware')
     output_path = os.path.join(output_dir, output_file)
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
-
-    # Initialize exporter_vmware key in the YAML dictionary
-    yaml_output['exporter_vmware'] = {}
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -927,49 +538,32 @@ def exporter_vmware(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-        print("Exporter VMware completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter VMware completed - nothing to do")
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_vmware', existing_yaml_output, new_entries, yaml_output, output_path)
 
 #################### EXPORTER_KAFKA ################
 
-
-import os
-import pandas as pd
-
 def exporter_kafka(file_path, output_file, output_dir):
+    global default_listen_port
     global output_path
 
-    try:
-        print("Exporter Kafka called")
+    # Initialize exporter_kafka key in the YAML dictionary
+    yaml_output = {'exporter_kafka': {}}
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=7)
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    try:
+        print("Exporter kafka called")
+
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Filter rows based on condition
-    df = df[df['Exporter_name_app'] == 'exporter_kafka']
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
-
-    # Initialize exporter_kafka key in the YAML dictionary
-    yaml_output['exporter_kafka'] = {}
+    df_filtered = filter_rows_by_exporter(df, 'exporter_kafka')
+    output_path = os.path.join(output_dir, output_file)
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -994,101 +588,39 @@ def exporter_kafka(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    new_entries_count = len(new_entries)
-    if new_entries_count:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-        print("Exporter Kafka completed")
-    else:
-        print("Exporter Kafka completed - nothing to do")
-    print(f"Total number of hosts processed: {new_entries_count}")
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_kafka', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
 ########## EXPORTER_CALLBACK ################################
 
 def exporter_callback(file_path, output_file, output_dir):
-    # Read CSV file into pandas           
-    df = pd.read_csv(file_path, skiprows=7)
-
-
-    # Filter rows based on condition
-    df = df[df['Exporter_name_app'] == 'exporter_callback']
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
-
-    # Initialize exporter_callback key in the YAML dictionary
-    yaml_output['exporter_callback'] = {}
-
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    for index, row in df.iterrows():
-        exporter_name = 'exporter_callback'
-        hostname = row['FQDN']
-        ip_address = row['IP Address']
-        location = row['Location']
-        country = row['Country']
-
-        if ip_exists_in_yaml(exporter_name, ip_address, output_dir, output_file):
-            continue
-
-        if hostname not in yaml_output.get('exporter_callback', {}):
-            yaml_output['exporter_callback'][hostname] = {}
-
-        if pd.isna(row['App-Listen-Port']):
-            listen_port = default_listen_port.get()
-        else:
-            listen_port = int(row['App-Listen-Port'])
-
-        yaml_output['exporter_callback'][hostname]['ip_address'] = ip_address
-        yaml_output['exporter_callback'][hostname]['listen_port'] = listen_port
-        yaml_output['exporter_callback'][hostname]['location'] = location
-        yaml_output['exporter_callback'][hostname]['country'] = country
-
-        # Check if optional headers are present
-        ssh_username_present = 'ssh_username' in df.columns
-        ssh_password_present = 'ssh_password' in df.columns
-
-        # Use the values from the optional headers if present, otherwise use the placeholders
-        if ssh_username_present and not pd.isna(row['ssh_username']):
-            yaml_output['exporter_callback'][hostname]['username'] = row['ssh_username']
-        else:
-            yaml_output['exporter_callback'][hostname]['username'] = 'maas'
-
-        if ssh_password_present and not pd.isna(row['ssh_password']):
-            yaml_output['exporter_callback'][hostname]['password'] = row['ssh_password']
-        else:
-            yaml_output['exporter_callback'][hostname]['password'] = 'ENC'
-
-        new_entries.append(row)
-
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        output_path = os.path.join(output_dir, output_file)
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-        print("Exporter Callback completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Callback completed - nothing to do")
+    exporter_generic('exporter_callback', file_path, output_file, output_dir)
 
 
 ########## EXPORTER_DRAC ############
 
 def exporter_drac(file_path, output_file, output_dir):
-    # Read CSV file into pandas           
-    df = pd.read_csv(file_path, skiprows=7)
+    global default_listen_port
+    global output_path
 
+    # Initialize exporter_kafka key in the YAML dictionary
+    yaml_output = {'exporter_drac': {}}
 
-    # Filter rows based on condition
-    df_filtered = df[df['Exporter_name_app'] == 'exporter_drac']
+    try:
+        print("Exporter DRAC called")
 
-    # Define output path
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_drac')
     output_path = os.path.join(output_dir, output_file)
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
 
     # Initialize exporter_drac key in the YAML dictionary
     yaml_output['exporter_drac'] = {}
@@ -1116,47 +648,33 @@ def exporter_drac(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-        print("Exporter DRAC completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter DRAC completed - nothing to do")
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_drac', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
 ############ exporter_genesyscloud ########################
 
-import os
-import pandas as pd
-import yaml
-
 def exporter_genesyscloud(file_path, output_file, output_dir):
-    # Read CSV file into pandas           
-    df = pd.read_csv(file_path, skiprows=7)
+    global default_listen_port
+    global output_path
 
+    # Initialize exporter_kafka key in the YAML dictionary
+    yaml_output = {'exporter_genesyscloud': {}}
 
-    # Filter rows based on condition
-    df = df[df['Exporter_name_app'] == 'exporter_genesyscloud']
+    try:
+        print("Exporter Genesys Cloud called")
 
-    # Define output path
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_genesyscloud')
     output_path = os.path.join(output_dir, output_file)
-
-    # Check existing IPs in YAML output
-    existing_ips = set()
-    if os.path.exists(output_path):
-        with open(output_path, 'r') as f:
-            yaml_output = yaml.safe_load(f)
-            for ip_addresses in yaml_output.get('exporter_genesyscloud', {}).values():
-                for ip_address in ip_addresses.keys():
-                    existing_ips.add(ip_address)
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
-
-    # Initialize exporter_genesyscloud key in the YAML dictionary
-    yaml_output['exporter_genesyscloud'] = {}
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -1189,92 +707,36 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
         existing_ips.add(ip_address)
         new_entries.append(row)
 
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    if new_entries:
-        with open(output_path, 'a') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-        print("Exporter Genesys Cloud completed")
-        print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter Genesys Cloud completed - nothing to do")
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_genesyscloud', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
-############# EXPORTER_ACM ###############
+############# EXPORTER_ACM #################################################################################################################
 
-def exporter_acm(file_path, output_file, output_dir, default_listen_port=8081):
-    print("Exporter ACM called")
+def exporter_acm(file_path, output_file, output_dir):
+    exporter_generic('exporter_acm', file_path, output_file, output_dir)
 
-    # Read CSV file into pandas           
-    df = pd.read_csv(file_path, skiprows=7)
+############# WEBLM_EXPORTER ################################################################################################################
 
-    # Filter rows based on condition
-    df = df[df['Exporter_name_app'] == 'exporter_acm']
+def exporter_weblm(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
 
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
+    try:
+        print("Exporter Weblm called")
 
-    # Initialize exporter_acm key in the YAML dictionary
-    yaml_output['exporter_acm'] = {}
+        df = read_input_file(file_path)
 
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    
-    # Create output_path
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_weblm')
     output_path = os.path.join(output_dir, output_file)
-    
-    for index, row in df.iterrows():
-        hostname = row['FQDN']
-        ip_address = row['IP Address']
-        location = row['Location']
-        country = row['Country']
-        listen_port = row['App-Listen-Port']
-        ssh_username = row.get('ssh_username', 'put your username here')
-        ssh_password = row.get('ssh_password', 'put your password here')
 
-        if ip_exists_in_yaml('exporter_acm', ip_address, output_path=output_path):
-            print(f"IP {ip_address} already exists in the YAML file.")
-            continue
-
-        if hostname not in yaml_output.get('exporter_acm', {}):
-            yaml_output['exporter_acm'][hostname] = {}
-
-        yaml_output['exporter_acm'][hostname]['ip_address'] = ip_address
-        yaml_output['exporter_acm'][hostname]['listen_port'] = int(listen_port) if not pd.isna(listen_port) else int(default_listen_port)
-        if 'lsp' in hostname.lower():
-            yaml_output['exporter_acm'][hostname]['type'] = 'lsp'
-        elif 'ess' in hostname.lower():
-            yaml_output['exporter_acm'][hostname]['type'] = 'ess'
-        else:
-            yaml_output['exporter_acm'][hostname]['type'] = 'acm'
-        yaml_output['exporter_acm'][hostname]['location'] = location
-        yaml_output['exporter_acm'][hostname]['country'] = country
-        yaml_output['exporter_acm'][hostname]['username'] = ssh_username
-        yaml_output['exporter_acm'][hostname]['password'] = ssh_password
-
-        new_entries.append(row)
-
-    # Write the YAML data to a file
-    if new_entries:
-        with open(output_path, 'w') as f:
-            yaml.dump(yaml_output, f, default_flow_style=False)
-            print(f"Exporter ACM completed")
-            print(f"Total number of hosts processed: {len(new_entries)}")
-    else:
-        print("Exporter ACM completed - nothing to do")
-
-
-
-############# WEBLM_EXPORTER ##########
-
-def exporter_weblm(file_path, output_file, output_dir, default_listen_port=8081):
-    # Read CSV file into pandas           
-    df = pd.read_csv(file_path, skiprows=7)
-
-    # Filter rows based on condition
-    df = df[df['Exporter_name_app'] == 'exporter_weblm']
-
-    # Create an empty dictionary to store the YAML output
-    yaml_output = {}
 
     # Initialize exporter_weblm key in the YAML dictionary
     yaml_output['exporter_weblm'] = {}
@@ -1306,16 +768,151 @@ def exporter_weblm(file_path, output_file, output_dir, default_listen_port=8081)
 
         new_entries.append(row)
 
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
 
-####### check if exists in yaml section ########
-    # Write the YAML data to a file
+    process_exporter('exporter_weblm', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+######
+def process_row_jmx(row, yaml_output):
+    exporter_name = 'exporter_jmx'
+    hostname = row['FQDN']
+    ip_address = row['IP Address']
+    location = row['Location']
+    country = row['Country']
+
+    if hostname not in yaml_output[exporter_name]:
+        yaml_output[exporter_name][hostname] = {}
+
+    jmx_ports_present = 'jmx_ports' in row.index
+    if jmx_ports_present and not pd.isna(row['jmx_ports']) and row['jmx_ports']:
+        ports = [int(port) for port in row['jmx_ports'].split(',')]
+    else:
+        ports = [8080, 8081]
+
+    for port in ports:
+        if port not in yaml_output[exporter_name][hostname]:
+            yaml_output[exporter_name][hostname][str(port)] = {}
+
+        yaml_output[exporter_name][hostname][str(port)]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname][str(port)]['location'] = location
+        yaml_output[exporter_name][hostname][str(port)]['country'] = country
+
+
+####
+def exporter_generic(exporter_name, file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        print(f"Exporter {exporter_name} called")
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, exporter_name)
     output_path = os.path.join(output_dir, output_file)
-    with open(output_path, 'w') as f:
-        yaml.dump(yaml_output, f, default_flow_style=False)
-        print(f"Exporter WebLM completed")
+
+    yaml_output = {exporter_name: {}}
+
+    for index, row in df_filtered.iterrows():
+        process_row_generic(exporter_name, row, yaml_output, default_listen_port)
+
+    new_entries = df_filtered.to_dict('records')
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter(exporter_name, existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+######
+def process_row_generic(exporter_name, row, yaml_output, default_listen_port):
+    hostname = row['Hostnames']
+    ip_address = row['IP Address']
+    location = row['Location']
+    country = row['Country']
+
+    if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+        return
+
+    if hostname not in yaml_output[exporter_name]:
+        yaml_output[exporter_name][hostname] = {}
+
+    # Use default_listen_port if 'App-Listen-Port' is not available
+    listen_port = row.get('App-Listen-Port', default_listen_port)
+    if listen_port == default_listen_port:
+        default_listen_port += 1
+
+    yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+    yaml_output[exporter_name][hostname]['listen_port'] = listen_port
+    yaml_output[exporter_name][hostname]['location'] = location
+    yaml_output[exporter_name][hostname]['country'] = country
+
+    ssh_username_present = 'ssh_username' in row
+    ssh_password_present = 'ssh_password' in row
+
+    # Use the values from the optional headers if present, otherwise use the placeholders
+    if ssh_username_present and not pd.isna(row['ssh_username']):
+        yaml_output[exporter_name][hostname]['username'] = row['ssh_username']
+    else:
+        yaml_output[exporter_name][hostname]['username'] = 'root'
+
+    if ssh_password_present and not pd.isna(row['ssh_password']):
+        yaml_output[exporter_name][hostname]['password'] = row['ssh_password']
+    else:
+        yaml_output[exporter_name][hostname]['password'] = 'ENC'
+
+
+
+###
+def filter_rows_by_exporter(df, exporter_name):
+    os_exporters = ['exporter_linux', 'exporter_windows', 'exporter_verint', 'exporter_vmware']
+    
+    if exporter_name in os_exporters:
+        column_name = 'Exporter_name_os'
+    else:
+        column_name = 'Exporter_name_app'
+    
+    return df[df[column_name] == exporter_name]
+
+### read input file
+
+def read_input_file(file_path):
+    # Check if file is CSV or Excel
+    file_extension = os.path.splitext(file_path)[1]
+    if file_extension == '.csv':
+        # Read CSV file into pandas
+        df = pd.read_csv(file_path, skiprows=7)
+    elif file_extension in ['.xlsx', '.xls']:
+        # Read Excel file into pandas
+        df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=range(0, 6))
+    else:
+        raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+    return df
+
+
+#### write to Yaml file and print.F
+def process_exporter(exporter_name, existing_yaml_output, new_entries, yaml_output, output_path):
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    if new_entries:
+        write_yaml(existing_yaml_output, yaml_output, output_path)
+        print(f"{exporter_name} completed")
         print(f"Total number of hosts processed: {len(new_entries)}")
+    else:
+        print(f"{exporter_name} completed - nothing to do")
 
+##### load existing yaml
+def load_existing_yaml(output_path):
+    if os.path.exists(output_path):
+        with open(output_path, 'r') as f:
+            existing_yaml_output = yaml.safe_load(f)
+            return existing_yaml_output if existing_yaml_output is not None else {}
+    return {}
 
+#### Check if IP in Yaml exists in filetered csv
 def ip_exists_in_yaml(exporter_name, ip_address, output_path):
     """
     Check if the given IP address already exists in the YAML file for the given exporter
@@ -1327,12 +924,25 @@ def ip_exists_in_yaml(exporter_name, ip_address, output_path):
         yaml_output = yaml.safe_load(f)
         if yaml_output is not None and exporter_name in yaml_output:
             for hostname, ip_data in yaml_output[exporter_name].items():
-                if ip_address in ip_data:
+                if 'ip_address' in ip_data and ip_data['ip_address'] == ip_address:
                     return True
     return False
 
+#### Write Yaml
+def write_yaml(existing_yaml_output, yaml_output, output_path):
+    # Update the existing YAML data with the new entries
+    for key, value in yaml_output.items():
+        if key not in existing_yaml_output:
+            existing_yaml_output[key] = {}
+        existing_yaml_output[key].update(value)
+
+    # Write the updated YAML data back to the file
+    with open(output_path, 'w') as f:
+        yaml.dump(existing_yaml_output, f)
+
 
 ################## MAIN SECTION ###################
+
 def run_exporters():
     global default_listen_port
 
