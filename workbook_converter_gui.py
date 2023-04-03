@@ -717,7 +717,60 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
 ################################################################### EXPORTER_ACM #####################################################################
 
 def exporter_acm(file_path, output_file, output_dir):
-    exporter_generic('exporter_acm', file_path, output_file, output_dir)
+    global default_listen_port
+    global output_path
+
+    # Initialize exporter_acm cloud key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_acm', OrderedDict())])
+
+    try:
+        print("Exporter Avaya Communication Manager called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_acm')
+    output_path = os.path.join(output_dir, output_file)
+
+    for index, row in df.iterrows():
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        listen_port = row['App-Listen-Port']
+        ssh_username = row.get('ssh_username', 'put your username here')
+        ssh_password = row.get('ssh_password', 'put your password here')
+
+        if ip_exists_in_yaml('exporter_acm', ip_address, output_path=output_path):
+            print(f"IP {ip_address} already exists in the YAML file.")
+            continue
+
+        if hostname not in yaml_output.get('exporter_acm', {}):
+            yaml_output['exporter_acm'][hostname] = OrderedDict()
+
+        yaml_output['exporter_acm'][hostname]['ip_address'] = ip_address
+        yaml_output['exporter_acm'][hostname]['listen_port'] = int(listen_port) if not pd.isna(listen_port) else int(default_listen_port)
+        if 'lsp' in hostname.lower():
+            yaml_output['exporter_acm'][hostname]['type'] = 'lsp'
+        elif 'ess' in hostname.lower():
+            yaml_output['exporter_acm'][hostname]['type'] = 'ess'
+        else:
+            yaml_output['exporter_acm'][hostname]['type'] = 'acm'
+        yaml_output['exporter_acm'][hostname]['location'] = location
+        yaml_output['exporter_acm'][hostname]['country'] = country
+        yaml_output['exporter_acm'][hostname]['username'] = ssh_username
+        yaml_output['exporter_acm'][hostname]['password'] = ssh_password
+
+        new_entries.append(row)
+
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_acm', existing_yaml_output, new_entries, yaml_output, output_path)
 
 ################################################################## WEBLM_EXPORTER ##############################################################################
 
@@ -739,7 +792,7 @@ def exporter_weblm(file_path, output_file, output_dir):
 
 
     # Initialize exporter_weblm key in the YAML dictionary
-    yaml_output['exporter_weblm'] = {}
+    yaml_output['exporter_weblm'][hostname] = OrderedDict()
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -783,7 +836,7 @@ def process_row_jmx(row, yaml_output):
     country = row['Country']
 
     if hostname not in yaml_output[exporter_name]:
-        yaml_output[exporter_name][hostname] = OrderedDict()
+        yaml_output['exporter_jmx'][hostname] = OrderedDict()
 
     jmx_ports_present = 'jmx_ports' in row.index
     if jmx_ports_present and not pd.isna(row['jmx_ports']) and row['jmx_ports']:
