@@ -6,6 +6,8 @@ import pandas as pd
 import yaml
 import os
 from collections import OrderedDict
+from ruamel.yaml import YAML
+
 
 class ToolTip:
     def __init__(self, widget, text):
@@ -106,6 +108,7 @@ def exporter_linux(file_path, output_file, output_dir):
 
 ######################################################  exporter_BlackBox  #############################################################
 
+
 def exporter_blackbox(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
@@ -169,7 +172,8 @@ def exporter_blackbox(file_path, output_file, output_dir):
     output_path = os.path.join(output_dir, output_file)
     existing_yaml_output = load_existing_yaml(output_path)
 
-    process_exporter('exporter_BlackBox', existing_yaml_output, new_entries, yaml_output, output_path)
+    process_exporter('exporter_blackbox', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 
 ########################################################  exporter_SSL  ##################################################################
@@ -478,19 +482,44 @@ def exporter_jmx(file_path, output_file, output_dir):
         return
 
     df_filtered = filter_rows_by_exporter(df, 'exporter_jmx')
-    # Create an empty dictionary to store the YAML output
-
-    yaml_output = OrderedDict([('exporter_jmx', OrderedDict())])
-    for index, row in df_filtered.iterrows():
-        process_row_jmx(row, yaml_output)
-
     output_path = os.path.join(output_dir, output_file)
+    yaml_output = OrderedDict([('exporter_jmx', OrderedDict())])
 
-    new_entries = df_filtered.to_dict('records')
-    existing_yaml_output = load_existing_yaml(output_path)
 
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml('exporter_jmx', ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output['exporter_jmx']:
+            yaml_output['exporter_jmx'][hostname] = {}
+
+        jmx_ports_present = 'jmx_ports' in row.index
+        if jmx_ports_present and not pd.isna(row['jmx_ports']) and row['jmx_ports']:
+            ports = [int(port) for port in row['jmx_ports'].split(',')]
+        else:
+            ports = [8080, 8081]
+
+        for port in ports:
+            if port not in yaml_output['exporter_jmx'][hostname]:
+                yaml_output['exporter_jmx'][hostname][str(port)] = {}
+
+            yaml_output['exporter_jmx'][hostname][str(port)]['ip_address'] = ip_address
+            yaml_output['exporter_jmx'][hostname][str(port)]['location'] = location
+            yaml_output['exporter_jmx'][hostname][str(port)]['country'] = country
+            new_entries.append(row)
+
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)          
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_jmx', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 ######################################################## EXPORTER_VMWARE #######################################################################
 
@@ -686,7 +715,8 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
         country = row['Country']
         comm_string = row.get('comm_string', 'public')
 
-        if ip_address in existing_ips:
+
+        if ip_exists_in_yaml('exporter_genesyscloud', ip_address, output_path=output_path):
             continue
 
         yaml_output['exporter_genesyscloud'][hostname] = OrderedDict([
@@ -704,7 +734,6 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
             ('community', comm_string)
         ])
 
-        existing_ips.add(ip_address)
         new_entries.append(row)
 
     # Add this line to load existing YAML data
@@ -719,15 +748,12 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
 def exporter_acm(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-
-    # Initialize exporter_acm cloud key in the YAML dictionary
-    yaml_output = OrderedDict([('exporter_acm', OrderedDict())])
+    new_entries = []
 
     try:
         print("Exporter Avaya Communication Manager called")
 
-        df = read_input_file(file_path)
-
+        df = read_input_file(file_path)for index, row in df.iterrows():
     except Exception as e:
         print(f"Error: {e}")
         return
@@ -735,7 +761,10 @@ def exporter_acm(file_path, output_file, output_dir):
     df_filtered = filter_rows_by_exporter(df, 'exporter_acm')
     output_path = os.path.join(output_dir, output_file)
 
-    for index, row in df.iterrows():
+    # Initialize exporter_acm cloud key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_acm', OrderedDict())])
+
+    for index, row in df_filtered.iterrows():
         hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
@@ -788,16 +817,21 @@ def exporter_weblm(file_path, output_file, output_dir):
         return
 
     df_filtered = filter_rows_by_exporter(df, 'exporter_weblm')
+
+    if df_filtered.empty:
+        print("No rows matching exporter_weblm condition found")
+        return
+
     output_path = os.path.join(output_dir, output_file)
 
+    hostname = df_filtered['FQDN'].iloc[0]
 
     # Initialize exporter_weblm key in the YAML dictionary
     yaml_output['exporter_weblm'][hostname] = OrderedDict()
 
     # Iterate over rows in filtered dataframe
     new_entries = []
-    for index, row in df.iterrows():
-        hostname = row['FQDN']
+    for index, row in df_filtered.iterrows():
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
@@ -807,9 +841,6 @@ def exporter_weblm(file_path, output_file, output_dir):
 
         if ip_exists_in_yaml('exporter_weblm', ip_address, output_dir=output_dir, output_file=output_file):
             continue
-
-        if hostname not in yaml_output.get('exporter_weblm', {}):
-            yaml_output[exporter_name][hostname] = OrderedDict()
 
         yaml_output['exporter_weblm'][hostname]['ip_address'] = ip_address
         yaml_output['exporter_weblm'][hostname]['listen_port'] = int(listen_port) if not pd.isna(listen_port) else int(default_listen_port)
@@ -826,31 +857,6 @@ def exporter_weblm(file_path, output_file, output_dir):
 
     process_exporter('exporter_weblm', existing_yaml_output, new_entries, yaml_output, output_path)
 
-
-####################################################### PROCESS ROW JMX (to be used fot tcti) ##########################################################
-def process_row_jmx(row, yaml_output):
-    exporter_name = 'exporter_jmx'
-    hostname = row['FQDN']
-    ip_address = row['IP Address']
-    location = row['Location']
-    country = row['Country']
-
-    if hostname not in yaml_output[exporter_name]:
-        yaml_output['exporter_jmx'][hostname] = OrderedDict()
-
-    jmx_ports_present = 'jmx_ports' in row.index
-    if jmx_ports_present and not pd.isna(row['jmx_ports']) and row['jmx_ports']:
-        ports = [int(port) for port in row['jmx_ports'].split(',')]
-    else:
-        ports = [8080, 8081]
-
-    for port in ports:
-        if port not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][str(port)] = {}
-
-        yaml_output[exporter_name][hostname][str(port)]['ip_address'] = ip_address
-        yaml_output[exporter_name][hostname][str(port)]['location'] = location
-        yaml_output[exporter_name][hostname][str(port)]['country'] = country
 
 
 
@@ -995,9 +1001,19 @@ def write_yaml(existing_yaml_output, yaml_output, output_path):
         existing_yaml_output[key].update(value)
 
     # Write the updated YAML data back to the file
-    with open(output_path, 'w') as f:
-        yaml.dump(existing_yaml_output, f)
+    with open(output_path, 'w', encoding='utf8') as f:
+        yaml.dump(existing_yaml_output, f, allow_unicode=True)
 
+########
+
+def dict_representer(dumper, data):
+    return dumper.represent_dict(data.items())
+
+def dict_constructor(loader, node):
+    return OrderedDict(loader.construct_pairs(node))
+
+yaml.add_representer(OrderedDict, dict_representer)
+yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
 
 #######################################################   MAIN SECTION      ##################################################################################
 
