@@ -51,62 +51,33 @@ selected_exporter_names = []
 
 #######################################################   START OF EXPORTER FUNCTIONS   ###################################################################
 
+############################################################ EXPORTER_CALLBACK #####################################################################
+
+def exporter_callback(file_path, output_file, output_dir):
+    exporter_generic('exporter_callback', file_path, output_file, output_dir)
+
+########################################################   exporter_BREEZE   ############################################################
+
+def exporter_breeze(file_path, output_file, output_dir):
+    exporter_generic('exporter_breeze', file_path, output_file, output_dir)
 
 
-################  EXPORTER_SM  ###########################
+###############################################################  exporter_CMS  #############################################################
+
+def exporter_cms(file_path, output_file, output_dir):
+    exporter_generic('exporter_cms', file_path, output_file, output_dir)
+
+############################################################  EXPORTER_SM  ################################################################################
 
 def exporter_sm(file_path, output_file, output_dir):
-    global default_listen_port
-    global output_path
-    yaml_output = OrderedDict([('exporter_sm', OrderedDict())])
-    try:
-        print("Exporter Session Manager called")
-
-        df = read_input_file(file_path)
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return
-
-    df_filtered = filter_rows_by_exporter(df, 'exporter_sm')
-    output_path = os.path.join(output_dir, output_file)
-
-    # Iterate over rows in filtered dataframe
-    new_entries = []
-    for index, row in df_filtered.iterrows():
-        exporter_name = 'exporter_sm'
-        hostname = row['Hostnames']
-        ip_address = row['IP Address']
-        listen_port = row['App-Listen-Port'] if not pd.isna(row['App-Listen-Port']) else listen_port_var.get()
-
-        # Check for duplicate entries
-        if ip_exists_in_yaml(exporter_name, ip_address, os.path.join(output_dir, output_file)):
-            continue
-
-        if hostname not in yaml_output[exporter_name]:
-            yaml_output[exporter_name][hostname] = {}
-        if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
-        
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(listen_port)
-        
-        new_entries.append(row)
-
-    # Add this line to load existing YAML data
-    existing_yaml_output = load_existing_yaml(output_path)  
-
-    # Write the YAML data to a file, either appending to an existing file or creating a new file
-    process_exporter('exporter_sm', existing_yaml_output, new_entries, yaml_output, output_path)
-
-
+    exporter_generic('exporter_sm', file_path, output_file, output_dir)
 
 ####################################################    EXPORTER_LINUX    #############################################################
 
 def exporter_linux(file_path, output_file, output_dir):
     exporter_generic('exporter_linux', file_path, output_file, output_dir)
 
-
-######################################################  exporter_BlackBox  #############################################################
+######################################################  EXPORTER_BlackBox  #############################################################
 
 
 def exporter_blackbox(file_path, output_file, output_dir):
@@ -176,7 +147,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
 
 
 
-########################################################  exporter_SSL  ##################################################################
+########################################################  EXPORTER_SSL  ##################################################################
 
 
 def exporter_ssl(file_path, output_file, output_dir):
@@ -210,10 +181,6 @@ def exporter_ssl(file_path, output_file, output_dir):
 
     # Initialize new_entries list
     new_entries = []
-
-    # Counter to keep track of the number of lines processed
-    processed_lines = 0
-
     # Loop through the filtered data and add to the dictionary
     for _, row in df_filtered.iterrows():
         exporter_name = 'exporter_ssl'
@@ -223,8 +190,8 @@ def exporter_ssl(file_path, output_file, output_dir):
         country = row['Country']
         exporter_app = row['Exporter_name_app']
 
-        # Set default listen_port to 443 and change it to 8443 if exporter_avayasbc is specified
-        listen_port = 8443 if exporter_app == 'exporter_avayasbc' else 443
+        # Set default listen_port to 443 and change it to 8443 if exporter_ssl is specified
+        listen_port = 8443 if exporter_app == 'exporter_ssl' else 443
 
         # Check for duplicate entries
         if ip_exists_in_yaml(exporter_name, ip_address, output_path):
@@ -241,8 +208,6 @@ def exporter_ssl(file_path, output_file, output_dir):
             'country': country,
         }
 
-        # Increment the processed lines counter and append the row to new_entries
-        processed_lines += 1
         new_entries.append(row)
 
     # Add this line to load existing YAML data
@@ -251,11 +216,7 @@ def exporter_ssl(file_path, output_file, output_dir):
     process_exporter('exporter_ssl', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
-###############################################################  exporter_CMS  ####################################################
-def exporter_cms(file_path, output_file, output_dir):
-    exporter_generic('exporter_cms', file_path, output_file, output_dir)
-
-##############################################################   exporter_WINDOWS   ##################################################
+##############################################################   exporter_WINDOWS   ########################################################
    
 def exporter_windows(file_path, output_file, output_dir):
     global default_listen_port
@@ -462,10 +423,59 @@ def exporter_gateway(file_path, output_file, output_dir):
     process_exporter('exporter_gateway', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
-########################################################   exporter_BREEZE   ############################################################
+#######################################################  EXPORTER_TCTI       ############################################################
 
-def exporter_breeze(file_path, output_file, output_dir):
-    exporter_generic('exporter_breeze', file_path, output_file, output_dir)
+def exporter_tcti(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        print("Exporter TCTI called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_tcti')
+    output_path = os.path.join(output_dir, output_file)
+    yaml_output = OrderedDict([('exporter_tcti', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml('exporter_tcti', ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output['exporter_tcti']:
+            yaml_output['exporter_tcti'][hostname] = {}
+
+        jmx_ports_present = 'jmx_ports' in row.index
+        if jmx_ports_present and not pd.isna(row['jmx_ports']) and row['jmx_ports']:
+            ports = [int(port) for port in row['jmx_ports'].split(',')]
+        else:
+            ports = [8080, 8081]
+
+        for port in ports:
+            if port not in yaml_output['exporter_tcti'][hostname]:
+                yaml_output['exporter_tcti'][hostname][int(port)] = {} # Changed this line
+
+            yaml_output['exporter_tcti'][hostname][int(port)]['ip_address'] = ip_address
+            yaml_output['exporter_tcti'][hostname][int(port)]['location'] = location
+            yaml_output['exporter_tcti'][hostname][int(port)]['country'] = country
+            new_entries.append(row)
+
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)          
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_tcti', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 ########################################################## EXPORTER_JMX #####################################################################
 def exporter_jmx(file_path, output_file, output_dir):
@@ -484,7 +494,6 @@ def exporter_jmx(file_path, output_file, output_dir):
     df_filtered = filter_rows_by_exporter(df, 'exporter_jmx')
     output_path = os.path.join(output_dir, output_file)
     yaml_output = OrderedDict([('exporter_jmx', OrderedDict())])
-
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -508,17 +517,18 @@ def exporter_jmx(file_path, output_file, output_dir):
 
         for port in ports:
             if port not in yaml_output['exporter_jmx'][hostname]:
-                yaml_output['exporter_jmx'][hostname][str(port)] = {}
+                yaml_output['exporter_jmx'][hostname][int(port)] = {} # Changed this line
 
-            yaml_output['exporter_jmx'][hostname][str(port)]['ip_address'] = ip_address
-            yaml_output['exporter_jmx'][hostname][str(port)]['location'] = location
-            yaml_output['exporter_jmx'][hostname][str(port)]['country'] = country
+            yaml_output['exporter_jmx'][hostname][int(port)]['ip_address'] = ip_address
+            yaml_output['exporter_jmx'][hostname][int(port)]['location'] = location
+            yaml_output['exporter_jmx'][hostname][int(port)]['country'] = country
             new_entries.append(row)
 
     # Add this line to load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)          
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_jmx', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 
 ######################################################## EXPORTER_VMWARE #######################################################################
@@ -578,12 +588,10 @@ def exporter_vmware(file_path, output_file, output_dir):
 def exporter_kafka(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-
-    # Initialize exporter_kafka key in the YAML dictionary
-    yaml_output = OrderedDict([('exporter_kafka', OrderedDict())])
+    new_entries = []
 
     try:
-        print("Exporter kafka called")
+        print("Exporter Exporter Kafka  called")
 
         df = read_input_file(file_path)
 
@@ -593,6 +601,13 @@ def exporter_kafka(file_path, output_file, output_dir):
 
     df_filtered = filter_rows_by_exporter(df, 'exporter_kafka')
     output_path = os.path.join(output_dir, output_file)
+
+    if df_filtered.empty:
+        print("No rows matching exporter_kafka condition found")
+        return
+
+    # Initialize exporter_genesyscloud key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_kafka', OrderedDict())])
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -622,12 +637,6 @@ def exporter_kafka(file_path, output_file, output_dir):
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_kafka', existing_yaml_output, new_entries, yaml_output, output_path)
-
-
-############################################################ EXPORTER_CALLBACK #####################################################################
-
-def exporter_callback(file_path, output_file, output_dir):
-    exporter_generic('exporter_callback', file_path, output_file, output_dir)
 
 
 ############################################################ EXPORTER_DRAC ############################################################################
@@ -689,9 +698,7 @@ def exporter_drac(file_path, output_file, output_dir):
 def exporter_genesyscloud(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-
-    # Initialize exporter_genesys cloud key in the YAML dictionary
-    yaml_output = OrderedDict([('exporter_genesyscloud', OrderedDict())])
+    new_entries = []
 
     try:
         print("Exporter Genesys Cloud called")
@@ -704,6 +711,13 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
 
     df_filtered = filter_rows_by_exporter(df, 'exporter_genesyscloud')
     output_path = os.path.join(output_dir, output_file)
+
+    if df_filtered.empty:
+        print("No rows matching exporter_genesyscloud condition found")
+        return
+
+    # Initialize exporter_genesyscloud key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_genesyscloud', OrderedDict())])
 
     # Iterate over rows in filtered dataframe
     new_entries = []
@@ -751,15 +765,20 @@ def exporter_acm(file_path, output_file, output_dir):
     new_entries = []
 
     try:
-        print("Exporter Avaya Communication Manager called")
+        print("Exporter ACM called")
 
-        df = read_input_file(file_path)for index, row in df.iterrows():
+        df = read_input_file(file_path)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
     df_filtered = filter_rows_by_exporter(df, 'exporter_acm')
     output_path = os.path.join(output_dir, output_file)
+
+    if df_filtered.empty:
+        print("No rows matching exporter_acm condition found")
+        return
 
     # Initialize exporter_acm cloud key in the YAML dictionary
     yaml_output = OrderedDict([('exporter_acm', OrderedDict())])
@@ -1004,7 +1023,7 @@ def write_yaml(existing_yaml_output, yaml_output, output_path):
     with open(output_path, 'w', encoding='utf8') as f:
         yaml.dump(existing_yaml_output, f, allow_unicode=True)
 
-########
+######################################################## dict_representer ############################################################################
 
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.items())
@@ -1051,7 +1070,7 @@ def run_exporters():
 
     # Run selected exporters
     if 'all' in selected_exporter_names:
-        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_sm', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud'], file_path, output_file, output_dir)
+        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_sm', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud', 'exporter_tcti'], file_path, output_file, output_dir)
     else:
         for exporter_name in selected_exporter_names:
             if exporter_name == 'exporter_linux':
@@ -1090,6 +1109,9 @@ def run_exporters():
                 exporter_drac(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_genesyscloud':
                 exporter_genesyscloud(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_tcti':
+                exporter_tcti(file_path, output_file, output_dir)
+
 
     # Show success message
     messagebox.showinfo('Success', 'Exporters completed')
@@ -1184,7 +1206,7 @@ def create_exporter_checkbuttons(frame):
 go_button = tk.Button(root, text='Go', command=run_exporters)
 go_button.grid(row=5, column=2, pady=10, sticky='w')
 
-exporter_names = ['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_sm', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud']
+exporter_names = ['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_sm', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud', 'exporter_tcti']
 
 exporters = []
 exporter_vars = []
