@@ -1023,7 +1023,7 @@ def write_yaml(existing_yaml_output, yaml_output, output_path):
     with open(output_path, 'w', encoding='utf8') as f:
         yaml.dump(existing_yaml_output, f, allow_unicode=True)
 
-######################################################## dict_representer ############################################################################
+########
 
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.items())
