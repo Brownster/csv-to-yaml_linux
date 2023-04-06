@@ -24,7 +24,7 @@ Here's a high-level overview of the script:
 
 More information on functions can be found in the wiki.
 
-To run this script, you need to have Python and the required libraries (tkinter, pandas, and PyYAML) installed on your system. Save the script as a .py file, and then execute it using the Python interpreter:
+To run this script, you need to have Python and the required libraries installed on your system. Save the script as a .py file, and then execute it using the Python interpreter:
 
 bash
 
@@ -32,9 +32,12 @@ python script_name.py
 
 Replace script_name.py with the name you saved the script as. This will open the GUI, and you can use it to generate the YAML files based on your input data.
 
-windows exe built with (when in folder of csv file):
+Alternatively a windows exe built from the python script is also provided. 
+
+To build yourself : (when in folder of csv file, on widows machine and all required pip packages installed)
 
 C:\Python39\python.exe C:\Python39\Lib\site-packages\PyInstaller\__main__.py --onefile python script_name.py
+
 Link to built windows exe:
 https://drive.google.com/file/d/1D2rjNvgdkKQBb40IaXf95bIE6rVAh9s-/view?usp=share_link
   
