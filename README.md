@@ -240,4 +240,7 @@ MAIN SECTION
 
     Tooltips are created for various widgets in the GUI, providing helpful information to the user.
 
-    Finally, the mainloop() method is called on the root Tkinter window, displaying the GUI and allowing the user to interact with it.
+    Finally, the mainloop() method is called on the r![Screenshot from 2023-04-06 18-45-14](https://user-images.githubusercontent.com/6543166/230456047-73abd5a4-9b85-4e93-89b0-0b817f71acd1.png)
+oot Tkinter window, displaying the GUI and allowing the user to interact with it.
+![Screenshot from 2023-04-06 18-47-03](https://user-images.githubusercontent.com/6543166/230456323-046f9a8e-8ca5-49af-86b7-96d7ce426324.png)
+![Screenshot from 2023-04-06 18-47-55](https://user-images.githubusercontent.com/6543166/230456534-9058dad6-9d88-4958-bc8e-12638f1f70cc.png)
