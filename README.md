@@ -32,7 +32,7 @@ Replace script_name.py with the name you saved the script as. This will open the
 
 windows exe built with (when in folder of csv file):
 
-C:\Python39\python.exe C:\Python39\Lib\site-packages\PyInstaller\__main__.py --onefile workbook_converter_gui.py
+C:\Python39\python.exe C:\Python39\Lib\site-packages\PyInstaller\__main__.py --onefile python script_name.py
 
 
 
