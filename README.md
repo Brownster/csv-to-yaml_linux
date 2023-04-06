@@ -1,6 +1,6 @@
 # csv/excel-to-yaml - Prometheus Config Gernerator
 
-# Exporters GUI
+# Workbook_Exporter GUI
 
 This is a Python script that creates a GUI application using tkinter to generate YAML files based on the data from a CSV or Excel file. The GUI allows users to select specific exporters, input file path, output file name, and output directory. Then, it processes the selected exporters and generates YAML files accordingly.
 
