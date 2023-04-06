@@ -1,49 +1,26 @@
-import sys
-import pandas as pd
-import yaml
+def exporter_breeze(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
 
-# Get the file path from command line arguments
-file_path = sys.argv[1]
+    try:
+        print("Exporter Breeze called")
 
-# Get the output file name from command line arguments
-output_file = sys.argv[2]
+        df = read_input_file(file_path)
 
-# Get the output directory from command line arguments
-output_dir = sys.argv[3]
+    except Exception as e:
+        print(f"Error: {e}")
+        return
 
-# Read CSV file into pandas
-df = pd.read_csv(file_path)
+    df_filtered = filter_rows_by_exporter(df, 'exporter_breeze')
+    output_path = os.path.join(output_dir, output_file)
 
-# Filter rows based on condition
-df = df[df['Exporter_name_app'] == 'exporter_breeze']
+    yaml_output = {'exporter_breeze': {}}
 
-# Create an empty dictionary to store the YAML output
-yaml_output = {}
+    for index, row in df_filtered.iterrows():
+        process_row_breeze(row, yaml_output)
 
-# Initialize exporter_breeze key in the YAML dictionary
-yaml_output['exporter_breeze'] = {}
+    new_entries = df_filtered.to_dict('records')
+    existing_yaml_output = load_existing_yaml(output_path)
 
-# Iterate over rows in filtered dataframe
-for index, row in df.iterrows():
-    exporter_name = 'exporter_breeze'
-    hostname = row['Hostnames']
-    ip_address = row['IP Address']
-    location = row['Location']
-    country = row['Country']
-
-    if hostname not in yaml_output.get(exporter_name, {}):
-        yaml_output[exporter_name][hostname] = {}
-
-    if ip_address not in yaml_output[exporter_name][hostname]:
-        yaml_output[exporter_name][hostname][ip_address] = {}
-
-    yaml_output[exporter_name][hostname][ip_address]['location'] = location
-    yaml_output[exporter_name][hostname][ip_address]['country'] = country
-    yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['ListenPort'])
-    yaml_output[exporter_name][hostname][ip_address]['username'] = 'root'
-    yaml_output[exporter_name][hostname][ip_address]['password'] = 'ENC'
-
-# Write the YAML data to a file
-output_path = output_dir + output_file
-with open(output_path, 'w') as f:
-    yaml.dump(yaml_output, f)
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_breeze', existing_yaml_output, new_entries, yaml_output, output_path)
