@@ -1,4 +1,4 @@
-# csv-to-yaml - Prometheus config
+# csv/excel-to-yaml - Prometheus Config Gernerator
 
 # Exporters GUI
 
