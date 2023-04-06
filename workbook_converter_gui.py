@@ -83,7 +83,7 @@ def exporter_linux(file_path, output_file, output_dir):
 def exporter_blackbox(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-    yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
+
     try:
         print("Exporter Blackbox called")
 
@@ -97,7 +97,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
     output_path = os.path.join(output_dir, output_file)
 
     # Initialize exporter_blackbox key in the YAML dictionary
-    yaml_output['exporter_blackbox'] = {}
+    yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
 
     # Check if optional headers are present
     ssh_username_present = 'ssh_username' in df.columns
@@ -141,8 +141,14 @@ def exporter_blackbox(file_path, output_file, output_dir):
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     output_path = os.path.join(output_dir, output_file)
-    existing_yaml_output = load_existing_yaml(output_path)
+    
+    sorted_yaml_output =[]
 
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_blackbox'].items(), key=lambda x: x[0]))
     process_exporter('exporter_blackbox', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
@@ -210,8 +216,15 @@ def exporter_ssl(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Add this line to load existing YAML data
+    
+    sorted_yaml_output =[]
+
+    # Load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_ssl'].items(), key=lambda x: x[0]))
+
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     process_exporter('exporter_ssl', existing_yaml_output, new_entries, yaml_output, output_path)
 
@@ -257,8 +270,14 @@ def exporter_windows(file_path, output_file, output_dir):
         yaml_output[exporter_name][fqdn]['country'] = country
 
         new_entries.append(row)
+    
+    sorted_yaml_output =[]
 
-    existing_yaml_output = load_existing_yaml(output_path)
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_windows'].items(), key=lambda x: x[0]))
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_windows', existing_yaml_output, new_entries, yaml_output, output_path)
@@ -304,7 +323,14 @@ def exporter_verint(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    existing_yaml_output = load_existing_yaml(output_path)
+    
+    sorted_yaml_output =[]
+
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_verint'].items(), key=lambda x: x[0]))
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_verint', existing_yaml_output, new_entries, yaml_output, output_path)
@@ -357,8 +383,15 @@ def exporter_avayasbc(file_path, output_file, output_dir):
 
             new_entries.append(row)
 
+    
+    sorted_yaml_output =[]
+
     # Load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_avayasbc'].items(), key=lambda x: x[0]))
+
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     process_exporter('exporter_avayasbc', existing_yaml_output, new_entries, yaml_output, output_path)
 
@@ -417,8 +450,15 @@ def exporter_gateway(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
 
         new_entries.append(row)
+    
+    sorted_yaml_output =[]
 
-    existing_yaml_output = load_existing_yaml(output_path)  # Add this line to load existing YAML data
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_gateway'].items(), key=lambda x: x[0]))
+
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     process_exporter('exporter_gateway', existing_yaml_output, new_entries, yaml_output, output_path)
 
@@ -428,6 +468,7 @@ def exporter_gateway(file_path, output_file, output_dir):
 def exporter_tcti(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
+    sorted_yaml_output =[]
 
     try:
         print("Exporter TCTI called")
@@ -472,7 +513,11 @@ def exporter_tcti(file_path, output_file, output_dir):
             new_entries.append(row)
 
     # Add this line to load existing YAML data
-    existing_yaml_output = load_existing_yaml(output_path)          
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_tcti'].items(), key=lambda x: x[0]))           
+
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_tcti', existing_yaml_output, new_entries, yaml_output, output_path)
 
@@ -481,7 +526,8 @@ def exporter_tcti(file_path, output_file, output_dir):
 def exporter_jmx(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-
+    sorted_yaml_output =[]
+ 
     try:
         print("Exporter JMX called")
 
@@ -525,17 +571,20 @@ def exporter_jmx(file_path, output_file, output_dir):
             new_entries.append(row)
 
     # Add this line to load existing YAML data
-    existing_yaml_output = load_existing_yaml(output_path)          
+    existing_yaml_output = load_existing_yaml(output_path)   
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_jmx'].items(), key=lambda x: x[0])) 
+
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_jmx', existing_yaml_output, new_entries, yaml_output, output_path)
-
-
 
 ######################################################## EXPORTER_VMWARE #######################################################################
 
 def exporter_vmware(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
+
     yaml_output = OrderedDict([('exporter_vmware', OrderedDict())])
     try:
         print("Exporter vmware called")
@@ -575,9 +624,14 @@ def exporter_vmware(file_path, output_file, output_dir):
         yaml_output['exporter_vmware'][hostname]['password'] = 'put your password here'
 
         new_entries.append(row)
+    
+    sorted_yaml_output =[]
 
-    # Add this line to load existing YAML data
+    # Load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
+
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_vmware'].items(), key=lambda x: x[0]))
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_vmware', existing_yaml_output, new_entries, yaml_output, output_path)
@@ -632,12 +686,14 @@ def exporter_kafka(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Add this line to load existing YAML data
+    sorted_yaml_output =[]
+    # Load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_kafka'].items(), key=lambda x: x[0]))
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_kafka', existing_yaml_output, new_entries, yaml_output, output_path)
-
 
 ############################################################ EXPORTER_DRAC ############################################################################
 
@@ -686,12 +742,14 @@ def exporter_drac(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Add this line to load existing YAML data
+    sorted_yaml_output =[]
+    # Load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_drac'].items(), key=lambda x: x[0]))
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_drac', existing_yaml_output, new_entries, yaml_output, output_path)
-
 
 ##################################################### exporter_genesyscloud ##########################################################################
 
@@ -699,7 +757,7 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
     new_entries = []
-
+    sorted_yaml_output =[]
     try:
         print("Exporter Genesys Cloud called")
 
@@ -753,6 +811,9 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
     # Add this line to load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
 
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_genesyscloud'].items(), key=lambda x: x[0]))
+
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_genesyscloud', existing_yaml_output, new_entries, yaml_output, output_path)
 
@@ -763,7 +824,7 @@ def exporter_acm(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
     new_entries = []
-
+    sorted_yaml_output =[]
     try:
         print("Exporter ACM called")
 
@@ -780,7 +841,7 @@ def exporter_acm(file_path, output_file, output_dir):
         print("No rows matching exporter_acm condition found")
         return
 
-    # Initialize exporter_acm cloud key in the YAML dictionary
+    # Initialize exporter_acm key in the YAML dictionary
     yaml_output = OrderedDict([('exporter_acm', OrderedDict())])
 
     for index, row in df_filtered.iterrows():
@@ -814,11 +875,13 @@ def exporter_acm(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
-    # Add this line to load existing YAML data
-    existing_yaml_output = load_existing_yaml(output_path)  
-
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_acm'].items(), key=lambda x: x[0]))
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_acm', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 ################################################################## WEBLM_EXPORTER ##############################################################################
 
@@ -871,9 +934,11 @@ def exporter_weblm(file_path, output_file, output_dir):
 
         new_entries.append(row)
 
+    sorted_yaml_output =[]
     # Load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)  
-
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_weblm'].items(), key=lambda x: x[0]))
     process_exporter('exporter_weblm', existing_yaml_output, new_entries, yaml_output, output_path)
 
 
@@ -884,6 +949,7 @@ def exporter_weblm(file_path, output_file, output_dir):
 def exporter_generic(exporter_name, file_path, output_file, output_dir):
     global default_listen_port
     global output_path
+    sorted_yaml_output =[]
 
     try:
         print(f"Exporter {exporter_name} called")
@@ -903,6 +969,8 @@ def exporter_generic(exporter_name, file_path, output_file, output_dir):
 
     new_entries = df_filtered.to_dict('records')
     existing_yaml_output = load_existing_yaml(output_path)
+
+    sorted_yaml_output = OrderedDict(sorted(yaml_output[exporter_name].items(), key=lambda x: x[0]))
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter(exporter_name, existing_yaml_output, new_entries, yaml_output, output_path)
@@ -979,7 +1047,10 @@ def read_input_file(file_path):
 def process_exporter(exporter_name, existing_yaml_output, new_entries, yaml_output, output_path):
     # Write the YAML data to a file, either updating the existing file or creating a new file
     if new_entries:
-        write_yaml(existing_yaml_output, yaml_output, output_path)
+        # Sort the YAML data by hostname before writing it to the output file
+        sorted_yaml_output = OrderedDict(sorted(yaml_output.items(), key=lambda x: x[0]))
+        # write to the output file
+        write_yaml(existing_yaml_output, sorted_yaml_output, output_path)
         print(f"{exporter_name} completed")
         print(f"Total number of hosts processed: {len(new_entries)}")
     else:
@@ -1012,6 +1083,7 @@ def ip_exists_in_yaml(exporter_name, ip_address, output_path):
     return False
 
 ######################################################      Write Yaml    ################################################################################
+
 def write_yaml(existing_yaml_output, yaml_output, output_path):
     # Update the existing YAML data with the new entries
     for key, value in yaml_output.items():
@@ -1128,6 +1200,7 @@ def browse_output_dir():
 
 
 ################################################################  terminal window  ###############################################################
+
 def redirect_stdout():
     sys.stdout = StdoutRedirector(output_text)
     sys.stderr = StdoutRedirector(output_text)
@@ -1141,6 +1214,7 @@ class StdoutRedirector(object):
         self.text_widget.see(END)
 
 ###############################################################   Create GUI window   ###############################################################
+
 root = tk.Tk()
 root.title('Exporters GUI')
 root.geometry("800x500")
