@@ -22,6 +22,8 @@ Here's a high-level overview of the script:
 
     The script enters the main event loop to display the GUI and wait for user input.
 
+More information on functions can be found in the wiki.
+
 To run this script, you need to have Python and the required libraries (tkinter, pandas, and PyYAML) installed on your system. Save the script as a .py file, and then execute it using the Python interpreter:
 
 bash
